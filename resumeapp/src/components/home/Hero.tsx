@@ -17,7 +17,7 @@ const Hero: React.FC = () => {
     if (!authService.isAuthenticated()) {
       navigate('/signup');
     } else {
-      navigate('/builder');
+      navigate('/make-options');
     }
   };
 

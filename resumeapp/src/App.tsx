@@ -8,6 +8,7 @@ import { ResumeProvider } from "@/contexts/ResumeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Builder from "./pages/Builder";
+import ResumeEditor from "./pages/ResumeEditor";
 import ATSChecker from "./pages/ATSChecker";
 import Templates from "./pages/Templates";
 import TemplateDetail from "./pages/TemplateDetail";
@@ -15,6 +16,9 @@ import JobTypes from "./pages/JobTypes";
 import About from "./pages/About";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import MakeOptions from "./pages/MakeOptions";
+import ChooseTemplate from "./pages/ChooseTemplate";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,10 +36,42 @@ const App = () => (
               <Route path="/signup" element={<Signup />} />
               <Route path="/login" element={<Login />} />
               <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/make-options"
+                element={
+                  <ProtectedRoute>
+                    <MakeOptions />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/choose-template"
+                element={
+                  <ProtectedRoute>
+                    <ChooseTemplate />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/builder"
                 element={
                   <ProtectedRoute>
                     <Builder />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/builder/:resumeId"
+                element={
+                  <ProtectedRoute>
+                    <ResumeEditor />
                   </ProtectedRoute>
                 }
               />

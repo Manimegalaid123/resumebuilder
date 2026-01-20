@@ -9,7 +9,7 @@ import { authService } from '@/services/authService';
 
 const navLinks = [
   { name: 'Home', path: '/' },
-  { name: 'Resume Builder', path: '/builder' },
+  { name: 'Resume Builder', path: '/make-options' },
   { name: 'Templates', path: '/templates' },
   { name: 'ATS Checker', path: '/ats-checker' },
   { name: 'Job Types', path: '/job-types' },
@@ -130,6 +130,11 @@ const Navbar: React.FC = () => {
             {/* Auth Buttons */}
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
+                <Link to="/dashboard" className="hidden md:block">
+                  <Button variant="outline" size="sm">
+                    Dashboard
+                  </Button>
+                </Link>
                 <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted">
                   <User className="w-4 h-4" />
                   <span className="text-sm font-medium">{user?.name}</span>
@@ -199,6 +204,11 @@ const Navbar: React.FC = () => {
               ))}
               {isAuthenticated ? (
                 <>
+                  <Link to="/dashboard" onClick={() => setIsOpen(false)}>
+                    <Button variant="outline" className="w-full justify-start">
+                      Dashboard
+                    </Button>
+                  </Link>
                   <div className="flex items-center gap-2 px-4 py-3 text-sm">
                     <User className="w-4 h-4" />
                     <span className="font-medium">{user?.name}</span>

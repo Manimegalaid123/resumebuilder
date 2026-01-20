@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Star } from 'lucide-react';
+import { ArrowRight, Star, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const templates = [
@@ -12,6 +12,7 @@ const templates = [
     rating: 4.9,
     downloads: '12K+',
     color: 'from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900',
+    atsScore: 92,
   },
   {
     id: 'modern-1',
@@ -20,6 +21,7 @@ const templates = [
     rating: 4.8,
     downloads: '8K+',
     color: 'from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30',
+    atsScore: 89,
   },
   {
     id: 'creative-1',
@@ -28,6 +30,88 @@ const templates = [
     rating: 4.7,
     downloads: '5K+',
     color: 'from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30',
+    atsScore: 85,
+  },
+  {
+    id: 'executive-1',
+    name: 'Executive Pro',
+    category: 'Executive',
+    rating: 4.9,
+    downloads: '9K+',
+    color: 'from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30',
+    atsScore: 94,
+  },
+  {
+    id: 'tech-1',
+    name: 'Tech Innovator',
+    category: 'Tech',
+    rating: 4.8,
+    downloads: '7K+',
+    color: 'from-cyan-100 to-blue-100 dark:from-cyan-900/30 dark:to-blue-900/30',
+    atsScore: 91,
+  },
+  {
+    id: 'minimal-1',
+    name: 'Minimal & Clean',
+    category: 'Minimal',
+    rating: 4.6,
+    downloads: '6K+',
+    color: 'from-gray-100 to-zinc-100 dark:from-gray-900/30 dark:to-zinc-900/30',
+    atsScore: 88,
+  },
+  {
+    id: 'colorful-1',
+    name: 'Colorful Impact',
+    category: 'Creative',
+    rating: 4.7,
+    downloads: '4K+',
+    color: 'from-rose-100 to-red-100 dark:from-rose-900/30 dark:to-red-900/30',
+    atsScore: 83,
+  },
+  {
+    id: 'academic-1',
+    name: 'Academic Scholar',
+    category: 'Academic',
+    rating: 4.8,
+    downloads: '5K+',
+    color: 'from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30',
+    atsScore: 90,
+  },
+  {
+    id: 'elegant-1',
+    name: 'Elegant Design',
+    category: 'Premium',
+    rating: 4.9,
+    downloads: '6K+',
+    color: 'from-violet-100 to-purple-100 dark:from-violet-900/30 dark:to-purple-900/30',
+    atsScore: 93,
+  },
+  {
+    id: 'compact-1',
+    name: 'Compact Pro',
+    category: 'Modern',
+    rating: 4.7,
+    downloads: '3K+',
+    color: 'from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30',
+    atsScore: 87,
+  },
+  {
+    id: 'bold-1',
+    name: 'Bold Statement',
+    category: 'Creative',
+    rating: 4.6,
+    downloads: '2K+',
+    color: 'from-red-100 to-pink-100 dark:from-red-900/30 dark:to-pink-900/30',
+    atsScore: 84,
+  },
+  {
+    id: 'luxury-1',
+    name: 'Luxury Premium',
+    category: 'Executive',
+    rating: 4.9,
+    downloads: '4K+',
+    color: 'from-yellow-50 to-amber-100 dark:from-yellow-900/20 dark:to-amber-900/30',
+    atsScore: 95,
   },
 ];
 
@@ -53,14 +137,14 @@ const TemplateShowcase: React.FC = () => {
           </div>
           <Link to="/templates">
             <Button variant="outline" className="gap-2">
-              View All Templates
+              View All Templates (30+)
               <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
         </motion.div>
 
         {/* Templates Grid */}
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {templates.map((template, index) => (
             <motion.div
               key={template.id}
@@ -70,58 +154,75 @@ const TemplateShowcase: React.FC = () => {
               transition={{ delay: index * 0.1 }}
             >
               <Link to={`/templates/${template.id}`}>
-                <div className="group cursor-pointer">
+                <div className="group cursor-pointer h-full flex flex-col">
                   {/* Template Preview */}
-                  <div className={`aspect-[3/4] rounded-2xl bg-gradient-to-br ${template.color} p-6 mb-4 border border-border overflow-hidden relative hover-lift`}>
-                    {/* Mock Resume Content */}
-                    <div className="bg-card rounded-lg h-full p-4 shadow-lg">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-full bg-muted" />
-                        <div className="space-y-1">
-                          <div className="h-3 w-24 bg-muted rounded" />
-                          <div className="h-2 w-16 bg-muted rounded" />
+                  <div className={`aspect-[3/4] rounded-xl bg-gradient-to-br ${template.color} p-4 mb-3 border border-border overflow-hidden relative hover-lift transition-all`}>
+                    {/* Resume Content */}
+                    <div className="bg-white dark:bg-slate-950 rounded-lg h-full p-3 shadow-md flex flex-col justify-between text-xs">
+                      {/* Header with Photo */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded w-20" />
+                            <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded w-16 mt-1" />
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-1.5 mt-2">
+                          <div className="h-1.5 bg-slate-300 dark:bg-slate-600 rounded w-full" />
+                          <div className="h-1.5 bg-slate-300 dark:bg-slate-600 rounded w-5/6" />
+                          <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded w-4/5" />
                         </div>
                       </div>
-                      <div className="space-y-3">
-                        <div className="h-2 w-full bg-muted rounded" />
-                        <div className="h-2 w-4/5 bg-muted rounded" />
-                        <div className="h-2 w-3/4 bg-muted rounded" />
-                      </div>
-                      <div className="mt-4 space-y-2">
-                        <div className="h-3 w-20 bg-primary/20 rounded" />
-                        <div className="h-2 w-full bg-muted rounded" />
-                        <div className="h-2 w-5/6 bg-muted rounded" />
-                      </div>
-                      <div className="mt-4 space-y-2">
-                        <div className="h-3 w-16 bg-primary/20 rounded" />
-                        <div className="flex gap-2">
-                          <div className="h-4 w-12 bg-muted rounded" />
-                          <div className="h-4 w-14 bg-muted rounded" />
-                          <div className="h-4 w-10 bg-muted rounded" />
+
+                      <div>
+                        <div className="h-1.5 bg-slate-300 dark:bg-slate-600 rounded w-16 mb-1" />
+                        <div className="space-y-1">
+                          <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded w-full" />
+                          <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded w-5/6" />
                         </div>
                       </div>
                     </div>
 
-                    {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Button className="gradient-bg">Use Template</Button>
+                    {/* ATS Badge */}
+                    <div className="absolute top-3 right-3 bg-green-500/90 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
+                      <CheckCircle className="w-3 h-3" />
+                      ATS
                     </div>
                   </div>
 
                   {/* Template Info */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold">{template.name}</h3>
-                      <span className="text-xs px-2 py-1 bg-muted rounded-full text-muted-foreground">
+                  <div className="flex-1 flex flex-col">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className="font-semibold text-sm leading-tight">{template.name}</h3>
+                      <span className="text-xs px-1.5 py-0.5 bg-muted rounded text-muted-foreground whitespace-nowrap flex-shrink-0">
                         {template.category}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    
+                    <div className="mt-auto pt-2 border-t border-border flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        {template.rating}
+                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                        <span className="font-semibold">{template.rating}</span>
                       </div>
-                      <span>{template.downloads} downloads</span>
+                      <div className="text-muted-foreground flex items-center gap-1">
+                        <span>📥 {template.downloads}</span>
+                      </div>
+                    </div>
+
+                    {/* ATS Score Bar */}
+                    <div className="mt-2 pt-2 border-t border-border">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium">ATS Score</span>
+                        <span className="text-xs font-bold text-green-600">{template.atsScore}/100</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-green-400 to-green-600" 
+                          style={{ width: `${template.atsScore}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

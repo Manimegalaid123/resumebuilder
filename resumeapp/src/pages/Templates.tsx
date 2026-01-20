@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Filter, Star, LayoutGrid, LayoutList, ChevronDown } from 'lucide-react';
+import { Search, Filter, Star, LayoutGrid, LayoutList, ChevronDown, TrendingUp, Award } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,34 +14,58 @@ import {
 import { cn } from '@/lib/utils';
 
 const templates = [
-  { id: 'classic-1', name: 'Professional Classic', category: 'Classic', rating: 4.9, downloads: '12K+', atsOptimized: true, experience: 'all' },
-  { id: 'classic-2', name: 'Executive Standard', category: 'Classic', rating: 4.8, downloads: '9K+', atsOptimized: true, experience: 'professional' },
-  { id: 'classic-3', name: 'Traditional', category: 'Classic', rating: 4.7, downloads: '7K+', atsOptimized: true, experience: 'all' },
-  { id: 'classic-4', name: 'Corporate', category: 'Classic', rating: 4.6, downloads: '5K+', atsOptimized: true, experience: 'professional' },
-  { id: 'modern-1', name: 'Modern Minimal', category: 'Modern', rating: 4.9, downloads: '15K+', atsOptimized: true, experience: 'all' },
-  { id: 'modern-2', name: 'Clean Sidebar', category: 'Modern', rating: 4.8, downloads: '11K+', atsOptimized: true, experience: 'fresher' },
-  { id: 'modern-3', name: 'Tech Pro', category: 'Modern', rating: 4.7, downloads: '8K+', atsOptimized: true, experience: 'professional' },
-  { id: 'modern-4', name: 'Elegant Blue', category: 'Modern', rating: 4.6, downloads: '6K+', atsOptimized: true, experience: 'all' },
-  { id: 'modern-5', name: 'Split Layout', category: 'Modern', rating: 4.5, downloads: '4K+', atsOptimized: false, experience: 'fresher' },
-  { id: 'creative-1', name: 'Creative Edge', category: 'Creative', rating: 4.8, downloads: '7K+', atsOptimized: false, experience: 'all' },
-  { id: 'creative-2', name: 'Portfolio Style', category: 'Creative', rating: 4.7, downloads: '5K+', atsOptimized: false, experience: 'all' },
-  { id: 'creative-3', name: 'Gradient Pro', category: 'Creative', rating: 4.6, downloads: '4K+', atsOptimized: false, experience: 'fresher' },
-  { id: 'creative-4', name: 'Artistic', category: 'Creative', rating: 4.5, downloads: '3K+', atsOptimized: false, experience: 'all' },
-  { id: 'creative-5', name: 'Bold & Colorful', category: 'Creative', rating: 4.4, downloads: '2K+', atsOptimized: false, experience: 'fresher' },
-  { id: 'simple-1', name: 'Simple Clean', category: 'Simple', rating: 4.9, downloads: '20K+', atsOptimized: true, experience: 'fresher' },
-  { id: 'simple-2', name: 'Minimalist', category: 'Simple', rating: 4.8, downloads: '15K+', atsOptimized: true, experience: 'all' },
-  { id: 'simple-3', name: 'Basic Pro', category: 'Simple', rating: 4.7, downloads: '10K+', atsOptimized: true, experience: 'all' },
-  { id: 'academic-1', name: 'Academic CV', category: 'Academic', rating: 4.8, downloads: '6K+', atsOptimized: true, experience: 'professional' },
-  { id: 'academic-2', name: 'Research', category: 'Academic', rating: 4.7, downloads: '4K+', atsOptimized: true, experience: 'professional' },
-  { id: 'entry-1', name: 'Fresh Graduate', category: 'Entry Level', rating: 4.9, downloads: '18K+', atsOptimized: true, experience: 'fresher' },
-  { id: 'entry-2', name: 'First Job', category: 'Entry Level', rating: 4.8, downloads: '14K+', atsOptimized: true, experience: 'fresher' },
-  { id: 'entry-3', name: 'Student CV', category: 'Entry Level', rating: 4.7, downloads: '12K+', atsOptimized: true, experience: 'fresher' },
-  { id: 'tech-1', name: 'Developer Pro', category: 'Tech', rating: 4.9, downloads: '10K+', atsOptimized: true, experience: 'all' },
-  { id: 'tech-2', name: 'Software Engineer', category: 'Tech', rating: 4.8, downloads: '8K+', atsOptimized: true, experience: 'professional' },
-  { id: 'creative-6', name: 'Designer Portfolio', category: 'Creative', rating: 4.7, downloads: '6K+', atsOptimized: false, experience: 'all' },
+  { id: 'classic-1', name: 'Professional Classic', category: 'Classic', rating: 4.9, downloads: '12K+', atsOptimized: true, experience: 'all', baseAtsScore: 82, keywords: ['professional', 'experience', 'skills', 'education'], features: ['Clean layout', 'ATS-friendly', 'All sections'] },
+  { id: 'classic-2', name: 'Executive Standard', category: 'Classic', rating: 4.8, downloads: '9K+', atsOptimized: true, experience: 'professional', baseAtsScore: 85, keywords: ['executive', 'leadership', 'management', 'results'], features: ['Executive focused', 'Achievement highlights', 'Professional'] },
+  { id: 'classic-3', name: 'Traditional', category: 'Classic', rating: 4.7, downloads: '7K+', atsOptimized: true, experience: 'all', baseAtsScore: 78, keywords: ['traditional', 'formal', 'experience', 'education'], features: ['Classic style', 'Formal layout', 'Comprehensive'] },
+  { id: 'classic-4', name: 'Corporate', category: 'Classic', rating: 4.6, downloads: '5K+', atsOptimized: true, experience: 'professional', baseAtsScore: 80, keywords: ['corporate', 'professional', 'management', 'strategy'], features: ['Corporate design', 'Professional', 'Clean'] },
+  { id: 'modern-1', name: 'Modern Minimal', category: 'Modern', rating: 4.9, downloads: '15K+', atsOptimized: true, experience: 'all', baseAtsScore: 88, keywords: ['modern', 'minimal', 'clean', 'design'], features: ['Minimal design', 'ATS-friendly', 'Modern'] },
+  { id: 'modern-2', name: 'Clean Sidebar', category: 'Modern', rating: 4.8, downloads: '11K+', atsOptimized: true, experience: 'fresher', baseAtsScore: 84, keywords: ['clean', 'sidebar', 'skills', 'projects'], features: ['Sidebar layout', 'Skills highlight', 'Fresh'] },
+  { id: 'modern-3', name: 'Tech Pro', category: 'Modern', rating: 4.7, downloads: '8K+', atsOptimized: true, experience: 'professional', baseAtsScore: 86, keywords: ['tech', 'developer', 'skills', 'projects'], features: ['Tech-focused', 'Code highlight', 'Professional'] },
+  { id: 'modern-4', name: 'Elegant Blue', category: 'Modern', rating: 4.6, downloads: '6K+', atsOptimized: true, experience: 'all', baseAtsScore: 81, keywords: ['elegant', 'modern', 'professional', 'design'], features: ['Elegant design', 'Blue theme', 'Professional'] },
+  { id: 'modern-5', name: 'Split Layout', category: 'Modern', rating: 4.5, downloads: '4K+', atsOptimized: false, experience: 'fresher', baseAtsScore: 72, keywords: ['split', 'creative', 'modern', 'layout'], features: ['Split layout', 'Creative', 'Modern'] },
+  { id: 'creative-1', name: 'Creative Edge', category: 'Creative', rating: 4.8, downloads: '7K+', atsOptimized: false, experience: 'all', baseAtsScore: 65, keywords: ['creative', 'design', 'visual', 'portfolio'], features: ['Creative design', 'Visual elements', 'Portfolio'] },
+  { id: 'creative-2', name: 'Portfolio Style', category: 'Creative', rating: 4.7, downloads: '5K+', atsOptimized: false, experience: 'all', baseAtsScore: 68, keywords: ['portfolio', 'design', 'visual', 'creative'], features: ['Portfolio focus', 'Visual showcase', 'Creative'] },
+  { id: 'creative-3', name: 'Gradient Pro', category: 'Creative', rating: 4.6, downloads: '4K+', atsOptimized: false, experience: 'fresher', baseAtsScore: 70, keywords: ['gradient', 'modern', 'design', 'colorful'], features: ['Gradient design', 'Modern', 'Colorful'] },
+  { id: 'creative-4', name: 'Artistic', category: 'Creative', rating: 4.5, downloads: '3K+', atsOptimized: false, experience: 'all', baseAtsScore: 62, keywords: ['artistic', 'creative', 'design', 'visual'], features: ['Artistic style', 'Creative', 'Visual'] },
+  { id: 'creative-5', name: 'Bold & Colorful', category: 'Creative', rating: 4.4, downloads: '2K+', atsOptimized: false, experience: 'fresher', baseAtsScore: 58, keywords: ['bold', 'colorful', 'creative', 'vibrant'], features: ['Bold colors', 'Vibrant', 'Creative'] },
+  { id: 'simple-1', name: 'Simple Clean', category: 'Simple', rating: 4.9, downloads: '20K+', atsOptimized: true, experience: 'fresher', baseAtsScore: 90, keywords: ['simple', 'clean', 'minimal', 'clear'], features: ['Very clean', 'Simple', 'Minimal'] },
+  { id: 'simple-2', name: 'Minimalist', category: 'Simple', rating: 4.8, downloads: '15K+', atsOptimized: true, experience: 'all', baseAtsScore: 87, keywords: ['minimalist', 'simple', 'clean', 'minimal'], features: ['Minimalist design', 'Clean', 'Simple'] },
+  { id: 'simple-3', name: 'Basic Pro', category: 'Simple', rating: 4.7, downloads: '10K+', atsOptimized: true, experience: 'all', baseAtsScore: 83, keywords: ['basic', 'professional', 'simple', 'clean'], features: ['Basic design', 'Professional', 'Clean'] },
+  { id: 'academic-1', name: 'Academic CV', category: 'Academic', rating: 4.8, downloads: '6K+', atsOptimized: true, experience: 'professional', baseAtsScore: 84, keywords: ['academic', 'research', 'publications', 'education'], features: ['Academic focus', 'Research highlight', 'Professional'] },
+  { id: 'academic-2', name: 'Research', category: 'Academic', rating: 4.7, downloads: '4K+', atsOptimized: true, experience: 'professional', baseAtsScore: 82, keywords: ['research', 'academic', 'publications', 'papers'], features: ['Research-focused', 'Publications', 'Academic'] },
+  { id: 'entry-1', name: 'Fresh Graduate', category: 'Entry Level', rating: 4.9, downloads: '18K+', atsOptimized: true, experience: 'fresher', baseAtsScore: 86, keywords: ['graduate', 'education', 'projects', 'skills'], features: ['Graduate focused', 'Education highlight', 'Projects'] },
+  { id: 'entry-2', name: 'First Job', category: 'Entry Level', rating: 4.8, downloads: '14K+', atsOptimized: true, experience: 'fresher', baseAtsScore: 85, keywords: ['entry', 'fresher', 'skills', 'education'], features: ['Entry-level', 'Fresher', 'Skills focus'] },
+  { id: 'entry-3', name: 'Student CV', category: 'Entry Level', rating: 4.7, downloads: '12K+', atsOptimized: true, experience: 'fresher', baseAtsScore: 83, keywords: ['student', 'education', 'projects', 'skills'], features: ['Student focused', 'Education', 'Projects'] },
+  { id: 'tech-1', name: 'Developer Pro', category: 'Tech', rating: 4.9, downloads: '10K+', atsOptimized: true, experience: 'all', baseAtsScore: 89, keywords: ['developer', 'programming', 'tech', 'skills'], features: ['Developer focus', 'Tech skills', 'Professional'] },
+  { id: 'tech-2', name: 'Software Engineer', category: 'Tech', rating: 4.8, downloads: '8K+', atsOptimized: true, experience: 'professional', baseAtsScore: 87, keywords: ['software', 'engineer', 'programming', 'development'], features: ['Engineering focus', 'Tech skills', 'Professional'] },
+  { id: 'creative-6', name: 'Designer Portfolio', category: 'Creative', rating: 4.7, downloads: '6K+', atsOptimized: false, experience: 'all', baseAtsScore: 66, keywords: ['design', 'portfolio', 'visual', 'creative'], features: ['Designer focus', 'Portfolio', 'Visual'] },
 ];
 
 const categories = ['All', 'Classic', 'Modern', 'Creative', 'Simple', 'Academic', 'Entry Level', 'Tech'];
+
+// Dynamic ATS Scoring Function
+const calculateDynamicAtsScore = (template: typeof templates[0]): number => {
+  let score = template.baseAtsScore;
+  
+  // Bonus for popularity (affects ATS readability - popular = well tested)
+  const downloads = parseInt(template.downloads);
+  if (downloads >= 15000) score += 3;
+  else if (downloads >= 10000) score += 2;
+  else if (downloads >= 5000) score += 1;
+  
+  // Bonus for high rating (quality = better ATS compatibility)
+  if (template.rating >= 4.8) score += 2;
+  else if (template.rating >= 4.6) score += 1;
+  
+  // Template category bonus
+  if (template.atsOptimized) score += 2;
+  
+  // Keyword count bonus
+  score += Math.min(template.keywords.length, 2);
+  
+  // Cap at 100
+  return Math.min(score, 100);
+};
 
 const Templates: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -49,9 +73,17 @@ const Templates: React.FC = () => {
   const [experience, setExperience] = useState<'all' | 'fresher' | 'professional'>('all');
   const [atsOnly, setAtsOnly] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<'popular' | 'rating' | 'newest'>('popular');
+  const [sortBy, setSortBy] = useState<'popular' | 'rating' | 'newest' | 'ats'>('popular');
 
-  const filteredTemplates = templates.filter(template => {
+  // Calculate dynamic ATS scores for all templates
+  const templatesWithScores = useMemo(() => {
+    return templates.map(template => ({
+      ...template,
+      dynamicAtsScore: calculateDynamicAtsScore(template),
+    }));
+  }, []);
+
+  const filteredTemplates = templatesWithScores.filter(template => {
     const matchesSearch = template.name.toLowerCase().includes(search.toLowerCase()) ||
                          template.category.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = category === 'All' || template.category === category;
@@ -63,6 +95,7 @@ const Templates: React.FC = () => {
 
   const sortedTemplates = [...filteredTemplates].sort((a, b) => {
     if (sortBy === 'rating') return b.rating - a.rating;
+    if (sortBy === 'ats') return b.dynamicAtsScore - a.dynamicAtsScore;
     if (sortBy === 'popular') return parseInt(b.downloads) - parseInt(a.downloads);
     return 0;
   });
@@ -181,13 +214,14 @@ const Templates: React.FC = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
-                    Sort: {sortBy === 'popular' ? 'Popular' : sortBy === 'rating' ? 'Top Rated' : 'Newest'}
+                    Sort: {sortBy === 'popular' ? 'Popular' : sortBy === 'rating' ? 'Top Rated' : sortBy === 'ats' ? 'Best ATS Score' : 'Newest'}
                     <ChevronDown className="w-4 h-4 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem onClick={() => setSortBy('popular')}>Most Popular</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setSortBy('rating')}>Top Rated</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy('ats')}>Best ATS Score</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setSortBy('newest')}>Newest</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -243,20 +277,138 @@ const Templates: React.FC = () => {
                     `bg-gradient-to-br ${getGradient(template.category)}`,
                     viewMode === 'grid' ? 'aspect-[3/4] mb-4' : 'w-32 h-40 flex-shrink-0'
                   )}>
-                    {/* Mock Resume Content */}
-                    <div className="bg-card rounded-lg h-full p-3 shadow-lg">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-6 h-6 rounded-full bg-muted" />
-                        <div className="space-y-1">
-                          <div className="h-2 w-16 bg-muted rounded" />
-                          <div className="h-1 w-10 bg-muted rounded" />
+                    {/* Resume Content - Different layouts per category */}
+                    <div className="bg-white dark:bg-slate-950 rounded-lg h-full shadow-lg overflow-hidden">
+                      {/* Template Type 1: Classic - Header on top */}
+                      {(template.category === 'Classic' || template.category === 'Simple') && (
+                        <div className="h-full flex flex-col p-3">
+                          <div className="text-center border-b border-gray-200 dark:border-gray-700 pb-2 mb-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 mx-auto mb-1" />
+                            <div className="h-2 w-16 bg-gray-300 dark:bg-gray-600 rounded mx-auto" />
+                            <div className="h-1 w-20 bg-gray-200 dark:bg-gray-700 rounded mx-auto mt-1" />
+                          </div>
+                          <div className="space-y-2 flex-1">
+                            <div className="h-1.5 w-12 bg-blue-200 dark:bg-blue-800 rounded" />
+                            <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                            <div className="h-1 w-5/6 bg-gray-200 dark:bg-gray-700 rounded" />
+                            <div className="h-1.5 w-14 bg-blue-200 dark:bg-blue-800 rounded mt-2" />
+                            <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                            <div className="h-1 w-4/5 bg-gray-200 dark:bg-gray-700 rounded" />
+                          </div>
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="h-1.5 w-full bg-muted rounded" />
-                        <div className="h-1.5 w-4/5 bg-muted rounded" />
-                        <div className="h-1.5 w-3/4 bg-muted rounded" />
-                      </div>
+                      )}
+
+                      {/* Template Type 2: Modern - Sidebar */}
+                      {template.category === 'Modern' && (
+                        <div className="h-full flex">
+                          <div className="w-1/3 bg-gradient-to-b from-blue-500 to-indigo-600 p-2">
+                            <div className="w-6 h-6 rounded-full bg-white/30 mx-auto mb-2" />
+                            <div className="h-1 w-8 bg-white/50 rounded mx-auto" />
+                            <div className="space-y-1 mt-3">
+                              <div className="h-0.5 w-full bg-white/30 rounded" />
+                              <div className="h-0.5 w-4/5 bg-white/30 rounded" />
+                            </div>
+                          </div>
+                          <div className="flex-1 p-2">
+                            <div className="h-1.5 w-12 bg-gray-300 dark:bg-gray-600 rounded mb-2" />
+                            <div className="space-y-1">
+                              <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                              <div className="h-1 w-5/6 bg-gray-200 dark:bg-gray-700 rounded" />
+                              <div className="h-1 w-4/5 bg-gray-200 dark:bg-gray-700 rounded" />
+                            </div>
+                            <div className="h-1.5 w-10 bg-gray-300 dark:bg-gray-600 rounded mt-2 mb-1" />
+                            <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Template Type 3: Creative - Colorful */}
+                      {template.category === 'Creative' && (
+                        <div className="h-full p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-purple-500" />
+                            <div>
+                              <div className="h-2 w-14 bg-purple-300 dark:bg-purple-700 rounded" />
+                              <div className="h-1 w-10 bg-pink-200 dark:bg-pink-800 rounded mt-0.5" />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-gradient-to-br from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30 rounded p-1.5">
+                              <div className="h-1 w-6 bg-purple-300 dark:bg-purple-700 rounded mb-1" />
+                              <div className="h-0.5 w-full bg-purple-200 dark:bg-purple-800 rounded" />
+                            </div>
+                            <div className="bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 rounded p-1.5">
+                              <div className="h-1 w-6 bg-blue-300 dark:bg-blue-700 rounded mb-1" />
+                              <div className="h-0.5 w-full bg-blue-200 dark:bg-blue-800 rounded" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Template Type 4: Academic */}
+                      {template.category === 'Academic' && (
+                        <div className="h-full p-3">
+                          <div className="border-b-2 border-amber-400 dark:border-amber-600 pb-2 mb-2">
+                            <div className="h-2.5 w-20 bg-gray-400 dark:bg-gray-500 rounded" />
+                            <div className="h-1 w-24 bg-gray-300 dark:bg-gray-600 rounded mt-1" />
+                          </div>
+                          <div className="space-y-2">
+                            <div className="h-1.5 w-16 bg-amber-300 dark:bg-amber-700 rounded" />
+                            <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                            <div className="h-1 w-5/6 bg-gray-200 dark:bg-gray-700 rounded" />
+                            <div className="h-1.5 w-14 bg-amber-300 dark:bg-amber-700 rounded mt-2" />
+                            <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Template Type 5: Entry Level */}
+                      {template.category === 'Entry Level' && (
+                        <div className="h-full p-3">
+                          <div className="flex items-center gap-2 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg p-2 mb-2">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-400 to-emerald-500" />
+                            <div>
+                              <div className="h-1.5 w-12 bg-green-400 dark:bg-green-600 rounded" />
+                              <div className="h-1 w-16 bg-green-300 dark:bg-green-700 rounded mt-0.5" />
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <div className="h-1.5 w-10 bg-emerald-300 dark:bg-emerald-700 rounded" />
+                            <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                            <div className="h-1 w-4/5 bg-gray-200 dark:bg-gray-700 rounded" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Template Type 6: Tech */}
+                      {template.category === 'Tech' && (
+                        <div className="h-full p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-7 h-7 rounded-md bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                              <div className="w-3 h-3 border border-white/50 rounded-sm" />
+                            </div>
+                            <div>
+                              <div className="h-2 w-14 bg-cyan-300 dark:bg-cyan-700 rounded" />
+                              <div className="h-1 w-18 bg-gray-300 dark:bg-gray-600 rounded mt-0.5" />
+                            </div>
+                          </div>
+                          <div className="flex gap-1 mb-2">
+                            <div className="px-1.5 py-0.5 bg-cyan-100 dark:bg-cyan-900/50 rounded text-[6px]">
+                              <div className="w-4 h-1 bg-cyan-400 rounded" />
+                            </div>
+                            <div className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 rounded text-[6px]">
+                              <div className="w-5 h-1 bg-blue-400 rounded" />
+                            </div>
+                            <div className="px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 rounded text-[6px]">
+                              <div className="w-4 h-1 bg-indigo-400 rounded" />
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                            <div className="h-1 w-5/6 bg-gray-200 dark:bg-gray-700 rounded" />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* ATS Badge */}
@@ -280,13 +432,65 @@ const Templates: React.FC = () => {
                         <Button size="sm" className="gradient-bg">Use Template</Button>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
                       <span className="px-2 py-0.5 bg-muted rounded-full">{template.category}</span>
                       <div className="flex items-center gap-1">
                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                         {template.rating}
                       </div>
                       <span>{template.downloads} downloads</span>
+                    </div>
+
+                    {/* Dynamic ATS Score Display */}
+                    <div className="space-y-2 mt-3 pt-3 border-t border-border">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Award className="w-4 h-4 text-blue-500" />
+                          <span className="text-xs font-semibold">ATS Score</span>
+                        </div>
+                        <span className={cn(
+                          'text-xs font-bold px-2 py-1 rounded-full',
+                          template.dynamicAtsScore >= 85 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+                          template.dynamicAtsScore >= 75 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+                          'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                        )}>
+                          {template.dynamicAtsScore}/100
+                        </span>
+                      </div>
+                      
+                      {/* ATS Progress Bar */}
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${template.dynamicAtsScore}%` }}
+                          transition={{ duration: 0.8, ease: 'easeOut' }}
+                          className={cn(
+                            'h-full rounded-full transition-all duration-500',
+                            template.dynamicAtsScore >= 85 ? 'bg-gradient-to-r from-green-400 to-green-600' :
+                            template.dynamicAtsScore >= 75 ? 'bg-gradient-to-r from-blue-400 to-blue-600' :
+                            'bg-gradient-to-r from-amber-400 to-amber-600'
+                          )}
+                        />
+                      </div>
+
+                      {/* ATS Insights */}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <TrendingUp className="w-3 h-3" />
+                        <span>
+                          {template.dynamicAtsScore >= 85 ? '✨ Excellent for ATS' :
+                           template.dynamicAtsScore >= 75 ? '✓ Good for ATS' :
+                           '⚠ Limited ATS compatibility'}
+                        </span>
+                      </div>
+
+                      {/* Features */}
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {template.features.slice(0, 2).map((feature, idx) => (
+                          <span key={idx} className="text-[10px] bg-muted px-2 py-0.5 rounded-full">
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
