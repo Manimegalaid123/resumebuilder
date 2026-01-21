@@ -412,4 +412,237 @@ function generateResumeHTML(resume) {
   return html;
 }
 
+// Generate unique share ID
+function generateShareId() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 10; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+// Create shareable link
+router.post('/:resumeId/share', async (req, res) => {
+  try {
+    const { resumeId } = req.params;
+    
+    const resume = await Resume.findById(resumeId);
+    if (!resume) {
+      return res.status(404).json({
+        success: false,
+        message: 'Resume not found',
+      });
+    }
+
+    // Generate share ID if not exists
+    if (!resume.shareId) {
+      resume.shareId = generateShareId();
+    }
+    resume.isPublic = true;
+    await resume.save();
+
+    res.status(200).json({
+      success: true,
+      shareId: resume.shareId,
+      shareUrl: `/share/${resume.shareId}`,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// Get public resume by share ID
+router.get('/public/:shareId', async (req, res) => {
+  try {
+    const { shareId } = req.params;
+    
+    const resume = await Resume.findOne({ shareId, isPublic: true });
+    if (!resume) {
+      return res.status(404).json({
+        success: false,
+        message: 'Resume not found or not public',
+      });
+    }
+
+    // Increment view count
+    resume.analytics.totalViews += 1;
+    resume.analytics.viewHistory.push({
+      date: new Date(),
+      count: 1,
+      country: req.headers['cf-ipcountry'] || 'Unknown',
+      source: req.headers['referer'] || 'Direct',
+    });
+    await resume.save();
+
+    res.status(200).json({
+      success: true,
+      resume,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// Track resume view
+router.post('/track-view/:shareId', async (req, res) => {
+  try {
+    const { shareId } = req.params;
+    const { source, country } = req.body;
+    
+    const resume = await Resume.findOne({ shareId });
+    if (!resume) {
+      return res.status(404).json({
+        success: false,
+        message: 'Resume not found',
+      });
+    }
+
+    resume.analytics.totalViews += 1;
+    resume.analytics.viewHistory.push({
+      date: new Date(),
+      count: 1,
+      country: country || 'Unknown',
+      source: source || 'Direct',
+    });
+    await resume.save();
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// Track download
+router.post('/:resumeId/track-download', async (req, res) => {
+  try {
+    const { resumeId } = req.params;
+    
+    const resume = await Resume.findById(resumeId);
+    if (!resume) {
+      return res.status(404).json({
+        success: false,
+        message: 'Resume not found',
+      });
+    }
+
+    resume.analytics.totalDownloads += 1;
+    await resume.save();
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// Get analytics
+router.get('/:resumeId/analytics', async (req, res) => {
+  try {
+    const { resumeId } = req.params;
+    const { range = '30d' } = req.query;
+    
+    const resume = await Resume.findById(resumeId);
+    if (!resume) {
+      return res.status(404).json({
+        success: false,
+        message: 'Resume not found',
+      });
+    }
+
+    // Calculate date range
+    const days = range === '7d' ? 7 : range === '90d' ? 90 : 30;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Filter view history
+    const filteredHistory = resume.analytics.viewHistory.filter(
+      v => new Date(v.date) >= startDate
+    );
+
+    // Aggregate by day
+    const viewsByDay = {};
+    filteredHistory.forEach(v => {
+      const dateKey = new Date(v.date).toISOString().split('T')[0];
+      viewsByDay[dateKey] = (viewsByDay[dateKey] || 0) + v.count;
+    });
+
+    // Aggregate by location
+    const viewsByLocation = {};
+    filteredHistory.forEach(v => {
+      viewsByLocation[v.country] = (viewsByLocation[v.country] || 0) + v.count;
+    });
+
+    // Aggregate by source
+    const viewsBySource = {};
+    filteredHistory.forEach(v => {
+      viewsBySource[v.source] = (viewsBySource[v.source] || 0) + v.count;
+    });
+
+    res.status(200).json({
+      success: true,
+      analytics: {
+        totalViews: resume.analytics.totalViews,
+        totalDownloads: resume.analytics.totalDownloads,
+        totalShares: resume.analytics.totalShares,
+        viewsByDay: Object.entries(viewsByDay).map(([date, views]) => ({ date, views })),
+        viewsByLocation: Object.entries(viewsByLocation).map(([country, views]) => ({
+          country,
+          views,
+          percentage: Math.round((views / filteredHistory.length) * 100),
+        })),
+        viewsBySource: Object.entries(viewsBySource).map(([source, views]) => ({
+          source,
+          views,
+          percentage: Math.round((views / filteredHistory.length) * 100),
+        })),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// Disable sharing
+router.delete('/:resumeId/share', async (req, res) => {
+  try {
+    const { resumeId } = req.params;
+    
+    const resume = await Resume.findById(resumeId);
+    if (!resume) {
+      return res.status(404).json({
+        success: false,
+        message: 'Resume not found',
+      });
+    }
+
+    resume.isPublic = false;
+    await resume.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Sharing disabled',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
 export default router;

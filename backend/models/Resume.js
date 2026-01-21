@@ -84,6 +84,28 @@ const resumeSchema = new mongoose.Schema({
     },
   ],
   atsScore: Number,
+  // Sharing features
+  shareId: {
+    type: String,
+    unique: true,
+    sparse: true,
+  },
+  isPublic: {
+    type: Boolean,
+    default: false,
+  },
+  // Analytics
+  analytics: {
+    totalViews: { type: Number, default: 0 },
+    totalDownloads: { type: Number, default: 0 },
+    totalShares: { type: Number, default: 0 },
+    viewHistory: [{
+      date: Date,
+      count: Number,
+      country: String,
+      source: String,
+    }],
+  },
   createdAt: {
     type: Date,
     default: Date.now,
