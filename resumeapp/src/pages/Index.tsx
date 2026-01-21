@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  FileText, Sparkles, Download, CheckCircle, ArrowRight, 
+import {
+  FileText, Sparkles, Download, CheckCircle, ArrowRight,
   Star, Users, Award, Zap, Shield, Clock, Target
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
@@ -75,7 +75,7 @@ const Index: React.FC = () => {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-700/25"></div>
-        
+
         <div className="container mx-auto px-4 py-16 md:py-24 relative">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
@@ -88,7 +88,7 @@ const Index: React.FC = () => {
                 <Zap className="w-4 h-4" />
                 <span>Build your resume in minutes</span>
               </div>
-              
+
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-white leading-tight mb-6">
                 Land your{' '}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
@@ -96,14 +96,14 @@ const Index: React.FC = () => {
                 </span>{' '}
                 with a perfect resume
               </h1>
-              
+
               <p className="text-lg text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">
-                Create a professional resume in minutes with our easy-to-use builder. 
+                Create a professional resume in minutes with our easy-to-use builder.
                 Choose from stunning templates, get AI-powered suggestions, and download instantly.
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
+                <Button
                   size="lg"
                   onClick={() => navigate('/templates')}
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all"
@@ -111,8 +111,8 @@ const Index: React.FC = () => {
                   Create Your Resume
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="lg"
                   onClick={() => navigate('/templates')}
                   className="px-8 py-6 text-lg rounded-xl"
@@ -143,61 +143,63 @@ const Index: React.FC = () => {
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="relative hidden md:block"
+              className="relative hidden md:block ml-auto"
             >
               <div className="relative">
-                {/* Main Preview */}
-                <div className="bg-white rounded-2xl shadow-2xl p-6 transform -rotate-2 hover:rotate-0 transition-all duration-500">
-                  <div className="flex gap-4">
-                    <div className="w-1/3 bg-blue-50 rounded-lg p-4">
-                      <div className="w-16 h-16 rounded-full bg-blue-200 mb-4 mx-auto"></div>
-                      <div className="space-y-2">
-                        <div className="h-2 bg-blue-200 rounded"></div>
-                        <div className="h-2 bg-blue-100 rounded w-3/4"></div>
-                      </div>
-                      <div className="mt-4 space-y-1">
-                        <div className="h-1.5 bg-blue-100 rounded"></div>
-                        <div className="h-1.5 bg-blue-100 rounded"></div>
-                        <div className="h-1.5 bg-blue-100 rounded w-2/3"></div>
-                      </div>
+                {/* Main Preview - Professional Resume */}
+                <div className="bg-white rounded-2xl shadow-2xl p-8 transform -rotate-2 hover:rotate-0 transition-all duration-500 max-w-md">
+                  {/* Header */}
+                  <div className="flex items-start gap-4 mb-6 pb-4 border-b border-slate-200">
+                    <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-bold text-xl">JD</span>
                     </div>
                     <div className="flex-1">
-                      <div className="h-4 bg-slate-800 rounded w-2/3 mb-2"></div>
-                      <div className="h-2 bg-slate-400 rounded w-1/3 mb-6"></div>
-                      <div className="space-y-3">
-                        <div>
-                          <div className="h-2 bg-blue-500 rounded w-1/4 mb-2"></div>
-                          <div className="space-y-1">
-                            <div className="h-1.5 bg-slate-200 rounded"></div>
-                            <div className="h-1.5 bg-slate-200 rounded"></div>
-                            <div className="h-1.5 bg-slate-200 rounded w-3/4"></div>
-                          </div>
+                      <h3 className="text-xl font-bold text-slate-900 mb-1">John Doe</h3>
+                      <p className="text-sm text-slate-600 mb-1">Senior Software Engineer</p>
+                      <p className="text-xs text-blue-600">San Francisco, CA</p>
+                    </div>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="mb-4">
+                    <h4 className="text-sm font-bold text-blue-600 mb-2 uppercase tracking-wide">Summary</h4>
+                    <p className="text-xs text-slate-700 leading-relaxed">
+                      Results-driven engineer with 7+ years of experience building scalable web applications.
+                      Expert in React, Node.js, and cloud technologies.
+                    </p>
+                  </div>
+
+                  {/* Experience */}
+                  <div className="mb-4">
+                    <h4 className="text-sm font-bold text-blue-600 mb-2 uppercase tracking-wide">Experience</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between items-start mb-1">
+                          <p className="text-xs font-semibold text-slate-900">Senior Software Engineer</p>
+                          <p className="text-xs text-blue-600">2020 - Present</p>
                         </div>
-                        <div>
-                          <div className="h-2 bg-blue-500 rounded w-1/4 mb-2"></div>
-                          <div className="space-y-1">
-                            <div className="h-1.5 bg-slate-200 rounded"></div>
-                            <div className="h-1.5 bg-slate-200 rounded w-2/3"></div>
-                          </div>
+                        <p className="text-xs text-blue-500 mb-1">Google Inc.</p>
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-start mb-1">
+                          <p className="text-xs font-semibold text-slate-900">Software Engineer</p>
+                          <p className="text-xs text-blue-600">2017 - 2020</p>
                         </div>
+                        <p className="text-xs text-blue-500">Meta Platforms</p>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Floating elements */}
-                <div className="absolute -top-4 -right-4 bg-green-500 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" />
-                  ATS Optimized
-                </div>
-                
-                <div className="absolute -bottom-4 -left-4 bg-white rounded-lg shadow-xl p-3 flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center justify-center">
-                    <Star className="w-4 h-4 text-white" />
-                  </div>
+                  {/* Skills */}
                   <div>
-                    <p className="text-xs font-medium text-slate-800">4.9 Rating</p>
-                    <p className="text-xs text-slate-500">50K+ Reviews</p>
+                    <h4 className="text-sm font-bold text-blue-600 mb-2 uppercase tracking-wide">Skills</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs border border-blue-200">React</span>
+                      <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs border border-blue-200">TypeScript</span>
+                      <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs border border-blue-200">Node.js</span>
+                      <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs border border-blue-200">Python</span>
+                      <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs border border-blue-200">AWS</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -268,7 +270,7 @@ const Index: React.FC = () => {
                     {step.description}
                   </p>
                 </div>
-                
+
                 {/* Connector arrow */}
                 {index < steps.length - 1 && (
                   <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
