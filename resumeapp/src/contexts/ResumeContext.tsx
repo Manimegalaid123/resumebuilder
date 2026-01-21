@@ -51,6 +51,17 @@ export interface Skill {
   proficiency: number;
 }
 
+export interface CustomSectionItem {
+  id: string;
+  content: string;
+}
+
+export interface CustomSection {
+  id: string;
+  title: string;
+  items: CustomSectionItem[];
+}
+
 export interface ResumeData {
   personalInfo: PersonalInfo;
   education: Education[];
@@ -58,6 +69,7 @@ export interface ResumeData {
   projects: Project[];
   achievements: Achievement[];
   skills: Skill[];
+  customSections: CustomSection[];
   template: 'classic' | 'modern' | 'creative';
 }
 
@@ -79,6 +91,12 @@ interface ResumeContextType {
   addSkill: () => void;
   updateSkill: (id: string, data: Partial<Skill>) => void;
   removeSkill: (id: string) => void;
+  addCustomSection: (title: string) => void;
+  updateCustomSectionTitle: (sectionId: string, title: string) => void;
+  removeCustomSection: (sectionId: string) => void;
+  addCustomSectionItem: (sectionId: string) => void;
+  updateCustomSectionItem: (sectionId: string, itemId: string, content: string) => void;
+  removeCustomSectionItem: (sectionId: string, itemId: string) => void;
   setTemplate: (template: 'classic' | 'modern' | 'creative') => void;
 }
 
@@ -96,6 +114,7 @@ const defaultResumeData: ResumeData = {
   projects: [],
   achievements: [],
   skills: [],
+  customSections: [],
   template: 'classic',
 };
 
@@ -265,6 +284,76 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }));
   };
 
+  const addCustomSection = (title: string) => {
+    const newSection: CustomSection = {
+      id: generateId(),
+      title: title || 'Custom Section',
+      items: [],
+    };
+    setResumeData(prev => ({
+      ...prev,
+      customSections: [...prev.customSections, newSection]
+    }));
+  };
+
+  const updateCustomSectionTitle = (sectionId: string, title: string) => {
+    setResumeData(prev => ({
+      ...prev,
+      customSections: prev.customSections.map(section =>
+        section.id === sectionId ? { ...section, title } : section
+      )
+    }));
+  };
+
+  const removeCustomSection = (sectionId: string) => {
+    setResumeData(prev => ({
+      ...prev,
+      customSections: prev.customSections.filter(section => section.id !== sectionId)
+    }));
+  };
+
+  const addCustomSectionItem = (sectionId: string) => {
+    const newItem: CustomSectionItem = {
+      id: generateId(),
+      content: '',
+    };
+    setResumeData(prev => ({
+      ...prev,
+      customSections: prev.customSections.map(section =>
+        section.id === sectionId
+          ? { ...section, items: [...section.items, newItem] }
+          : section
+      )
+    }));
+  };
+
+  const updateCustomSectionItem = (sectionId: string, itemId: string, content: string) => {
+    setResumeData(prev => ({
+      ...prev,
+      customSections: prev.customSections.map(section =>
+        section.id === sectionId
+          ? {
+              ...section,
+              items: section.items.map(item =>
+                item.id === itemId ? { ...item, content } : item
+              )
+            }
+          : section
+      )
+    }));
+  };
+
+  const removeCustomSectionItem = (sectionId: string, itemId: string) => {
+    setResumeData(prev => ({
+      ...prev,
+      customSections: prev.customSections.map(section =>
+        section.id === sectionId
+          ? { ...section, items: section.items.filter(item => item.id !== itemId) }
+          : section
+      )
+    }));
+  };
+
   const setTemplate = (template: 'classic' | 'modern' | 'creative') => {
     setResumeData(prev => ({ ...prev, template }));
   };
@@ -288,6 +377,12 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       addSkill,
       updateSkill,
       removeSkill,
+      addCustomSection,
+      updateCustomSectionTitle,
+      removeCustomSection,
+      addCustomSectionItem,
+      updateCustomSectionItem,
+      removeCustomSectionItem,
       setTemplate,
     }}>
       {children}

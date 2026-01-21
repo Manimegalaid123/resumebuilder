@@ -11,14 +11,13 @@ import Builder from "./pages/Builder";
 import ResumeEditor from "./pages/ResumeEditor";
 import ATSChecker from "./pages/ATSChecker";
 import Templates from "./pages/Templates";
-import TemplateDetail from "./pages/TemplateDetail";
 import JobTypes from "./pages/JobTypes";
 import About from "./pages/About";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import MakeOptions from "./pages/MakeOptions";
-import ChooseTemplate from "./pages/ChooseTemplate";
+import Profile from "./pages/Profile";
+import Tips from "./pages/Tips";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,18 +43,10 @@ const App = () => (
                 }
               />
               <Route
-                path="/make-options"
+                path="/templates"
                 element={
                   <ProtectedRoute>
-                    <MakeOptions />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/choose-template"
-                element={
-                  <ProtectedRoute>
-                    <ChooseTemplate />
+                    <Templates />
                   </ProtectedRoute>
                 }
               />
@@ -76,10 +67,17 @@ const App = () => (
                 }
               />
               <Route path="/ats-checker" element={<ATSChecker />} />
-              <Route path="/templates" element={<Templates />} />
-              <Route path="/templates/:id" element={<TemplateDetail />} />
               <Route path="/job-types" element={<JobTypes />} />
+              <Route path="/tips" element={<Tips />} />
               <Route path="/about" element={<About />} />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

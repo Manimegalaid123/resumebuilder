@@ -9,10 +9,9 @@ import { authService } from '@/services/authService';
 
 const navLinks = [
   { name: 'Home', path: '/' },
-  { name: 'Resume Builder', path: '/make-options' },
   { name: 'Templates', path: '/templates' },
   { name: 'ATS Checker', path: '/ats-checker' },
-  { name: 'Job Types', path: '/job-types' },
+  { name: 'Tips', path: '/tips' },
   { name: 'About', path: '/about' },
 ];
 
@@ -130,20 +129,14 @@ const Navbar: React.FC = () => {
             {/* Auth Buttons */}
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
-                <Link to="/dashboard" className="hidden md:block">
-                  <Button variant="outline" size="sm">
-                    Dashboard
-                  </Button>
-                </Link>
-                <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted">
+                <Link to="/profile" className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors">
                   <User className="w-4 h-4" />
                   <span className="text-sm font-medium">{user?.name}</span>
-                </div>
+                </Link>
                 <Button
                   onClick={handleLogout}
                   variant="outline"
                   size="sm"
-                  className="hidden md:flex"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
@@ -151,12 +144,12 @@ const Navbar: React.FC = () => {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Link to="/login" className="hidden md:block">
+                <Link to="/login">
                   <Button variant="outline" size="sm">
                     Login
                   </Button>
                 </Link>
-                <Link to="/signup" className="hidden md:block">
+                <Link to="/signup">
                   <Button size="sm" className="gradient-bg">
                     Sign Up
                   </Button>
@@ -205,8 +198,14 @@ const Navbar: React.FC = () => {
               {isAuthenticated ? (
                 <>
                   <Link to="/dashboard" onClick={() => setIsOpen(false)}>
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button className="w-full justify-start gradient-bg">
                       Dashboard
+                    </Button>
+                  </Link>
+                  <Link to="/profile" onClick={() => setIsOpen(false)}>
+                    <Button variant="outline" className="w-full justify-start">
+                      <User className="w-4 h-4 mr-2" />
+                      Profile Settings
                     </Button>
                   </Link>
                   <div className="flex items-center gap-2 px-4 py-3 text-sm">

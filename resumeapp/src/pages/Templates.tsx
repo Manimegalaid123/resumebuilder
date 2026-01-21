@@ -1,517 +1,711 @@
-import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Filter, Star, LayoutGrid, LayoutList, ChevronDown, TrendingUp, Award } from 'lucide-react';
+import { 
+  LayoutGrid, Star, Code, Image, Briefcase, Award, 
+  Mail, Phone, MapPin, CheckCircle, Search, Columns
+} from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { cn } from '@/lib/utils';
 
-const templates = [
-  { id: 'classic-1', name: 'Professional Classic', category: 'Classic', rating: 4.9, downloads: '12K+', atsOptimized: true, experience: 'all', baseAtsScore: 82, keywords: ['professional', 'experience', 'skills', 'education'], features: ['Clean layout', 'ATS-friendly', 'All sections'] },
-  { id: 'classic-2', name: 'Executive Standard', category: 'Classic', rating: 4.8, downloads: '9K+', atsOptimized: true, experience: 'professional', baseAtsScore: 85, keywords: ['executive', 'leadership', 'management', 'results'], features: ['Executive focused', 'Achievement highlights', 'Professional'] },
-  { id: 'classic-3', name: 'Traditional', category: 'Classic', rating: 4.7, downloads: '7K+', atsOptimized: true, experience: 'all', baseAtsScore: 78, keywords: ['traditional', 'formal', 'experience', 'education'], features: ['Classic style', 'Formal layout', 'Comprehensive'] },
-  { id: 'classic-4', name: 'Corporate', category: 'Classic', rating: 4.6, downloads: '5K+', atsOptimized: true, experience: 'professional', baseAtsScore: 80, keywords: ['corporate', 'professional', 'management', 'strategy'], features: ['Corporate design', 'Professional', 'Clean'] },
-  { id: 'modern-1', name: 'Modern Minimal', category: 'Modern', rating: 4.9, downloads: '15K+', atsOptimized: true, experience: 'all', baseAtsScore: 88, keywords: ['modern', 'minimal', 'clean', 'design'], features: ['Minimal design', 'ATS-friendly', 'Modern'] },
-  { id: 'modern-2', name: 'Clean Sidebar', category: 'Modern', rating: 4.8, downloads: '11K+', atsOptimized: true, experience: 'fresher', baseAtsScore: 84, keywords: ['clean', 'sidebar', 'skills', 'projects'], features: ['Sidebar layout', 'Skills highlight', 'Fresh'] },
-  { id: 'modern-3', name: 'Tech Pro', category: 'Modern', rating: 4.7, downloads: '8K+', atsOptimized: true, experience: 'professional', baseAtsScore: 86, keywords: ['tech', 'developer', 'skills', 'projects'], features: ['Tech-focused', 'Code highlight', 'Professional'] },
-  { id: 'modern-4', name: 'Elegant Blue', category: 'Modern', rating: 4.6, downloads: '6K+', atsOptimized: true, experience: 'all', baseAtsScore: 81, keywords: ['elegant', 'modern', 'professional', 'design'], features: ['Elegant design', 'Blue theme', 'Professional'] },
-  { id: 'modern-5', name: 'Split Layout', category: 'Modern', rating: 4.5, downloads: '4K+', atsOptimized: false, experience: 'fresher', baseAtsScore: 72, keywords: ['split', 'creative', 'modern', 'layout'], features: ['Split layout', 'Creative', 'Modern'] },
-  { id: 'creative-1', name: 'Creative Edge', category: 'Creative', rating: 4.8, downloads: '7K+', atsOptimized: false, experience: 'all', baseAtsScore: 65, keywords: ['creative', 'design', 'visual', 'portfolio'], features: ['Creative design', 'Visual elements', 'Portfolio'] },
-  { id: 'creative-2', name: 'Portfolio Style', category: 'Creative', rating: 4.7, downloads: '5K+', atsOptimized: false, experience: 'all', baseAtsScore: 68, keywords: ['portfolio', 'design', 'visual', 'creative'], features: ['Portfolio focus', 'Visual showcase', 'Creative'] },
-  { id: 'creative-3', name: 'Gradient Pro', category: 'Creative', rating: 4.6, downloads: '4K+', atsOptimized: false, experience: 'fresher', baseAtsScore: 70, keywords: ['gradient', 'modern', 'design', 'colorful'], features: ['Gradient design', 'Modern', 'Colorful'] },
-  { id: 'creative-4', name: 'Artistic', category: 'Creative', rating: 4.5, downloads: '3K+', atsOptimized: false, experience: 'all', baseAtsScore: 62, keywords: ['artistic', 'creative', 'design', 'visual'], features: ['Artistic style', 'Creative', 'Visual'] },
-  { id: 'creative-5', name: 'Bold & Colorful', category: 'Creative', rating: 4.4, downloads: '2K+', atsOptimized: false, experience: 'fresher', baseAtsScore: 58, keywords: ['bold', 'colorful', 'creative', 'vibrant'], features: ['Bold colors', 'Vibrant', 'Creative'] },
-  { id: 'simple-1', name: 'Simple Clean', category: 'Simple', rating: 4.9, downloads: '20K+', atsOptimized: true, experience: 'fresher', baseAtsScore: 90, keywords: ['simple', 'clean', 'minimal', 'clear'], features: ['Very clean', 'Simple', 'Minimal'] },
-  { id: 'simple-2', name: 'Minimalist', category: 'Simple', rating: 4.8, downloads: '15K+', atsOptimized: true, experience: 'all', baseAtsScore: 87, keywords: ['minimalist', 'simple', 'clean', 'minimal'], features: ['Minimalist design', 'Clean', 'Simple'] },
-  { id: 'simple-3', name: 'Basic Pro', category: 'Simple', rating: 4.7, downloads: '10K+', atsOptimized: true, experience: 'all', baseAtsScore: 83, keywords: ['basic', 'professional', 'simple', 'clean'], features: ['Basic design', 'Professional', 'Clean'] },
-  { id: 'academic-1', name: 'Academic CV', category: 'Academic', rating: 4.8, downloads: '6K+', atsOptimized: true, experience: 'professional', baseAtsScore: 84, keywords: ['academic', 'research', 'publications', 'education'], features: ['Academic focus', 'Research highlight', 'Professional'] },
-  { id: 'academic-2', name: 'Research', category: 'Academic', rating: 4.7, downloads: '4K+', atsOptimized: true, experience: 'professional', baseAtsScore: 82, keywords: ['research', 'academic', 'publications', 'papers'], features: ['Research-focused', 'Publications', 'Academic'] },
-  { id: 'entry-1', name: 'Fresh Graduate', category: 'Entry Level', rating: 4.9, downloads: '18K+', atsOptimized: true, experience: 'fresher', baseAtsScore: 86, keywords: ['graduate', 'education', 'projects', 'skills'], features: ['Graduate focused', 'Education highlight', 'Projects'] },
-  { id: 'entry-2', name: 'First Job', category: 'Entry Level', rating: 4.8, downloads: '14K+', atsOptimized: true, experience: 'fresher', baseAtsScore: 85, keywords: ['entry', 'fresher', 'skills', 'education'], features: ['Entry-level', 'Fresher', 'Skills focus'] },
-  { id: 'entry-3', name: 'Student CV', category: 'Entry Level', rating: 4.7, downloads: '12K+', atsOptimized: true, experience: 'fresher', baseAtsScore: 83, keywords: ['student', 'education', 'projects', 'skills'], features: ['Student focused', 'Education', 'Projects'] },
-  { id: 'tech-1', name: 'Developer Pro', category: 'Tech', rating: 4.9, downloads: '10K+', atsOptimized: true, experience: 'all', baseAtsScore: 89, keywords: ['developer', 'programming', 'tech', 'skills'], features: ['Developer focus', 'Tech skills', 'Professional'] },
-  { id: 'tech-2', name: 'Software Engineer', category: 'Tech', rating: 4.8, downloads: '8K+', atsOptimized: true, experience: 'professional', baseAtsScore: 87, keywords: ['software', 'engineer', 'programming', 'development'], features: ['Engineering focus', 'Tech skills', 'Professional'] },
-  { id: 'creative-6', name: 'Designer Portfolio', category: 'Creative', rating: 4.7, downloads: '6K+', atsOptimized: false, experience: 'all', baseAtsScore: 66, keywords: ['design', 'portfolio', 'visual', 'creative'], features: ['Designer focus', 'Portfolio', 'Visual'] },
+const categories = [
+  { id: 'all', name: 'All Templates', icon: LayoutGrid },
+  { id: 'simple', name: 'Simple', icon: Star },
+  { id: 'modern', name: 'Modern', icon: Code },
+  { id: 'one-column', name: 'One Column', icon: Columns },
+  { id: 'with-photo', name: 'With Photo', icon: Image },
+  { id: 'professional', name: 'Professional', icon: Briefcase },
+  { id: 'ats', name: 'ATS Friendly', icon: Award },
 ];
 
-const categories = ['All', 'Classic', 'Modern', 'Creative', 'Simple', 'Academic', 'Entry Level', 'Tech'];
+// Template Components
+const KellyTemplate = () => (
+  <div className="h-full flex text-[7px] bg-white overflow-hidden">
+    <div className="w-[35%] bg-slate-100 p-3">
+      <h3 className="font-bold text-[12px] text-slate-800 leading-tight">KELLY</h3>
+      <h3 className="font-bold text-[12px] text-slate-800 mb-1">BLACKWELL</h3>
+      <p className="text-slate-600 text-[8px] mb-3">Administrative Assistant</p>
+      
+      <div className="mb-3">
+        <h4 className="font-bold text-[8px] text-slate-700 border-b border-slate-300 pb-1 mb-2">DETAILS</h4>
+        <div className="space-y-1 text-[7px] text-slate-600">
+          <div className="flex items-start gap-1">
+            <Mail className="w-2.5 h-2.5 text-slate-400 mt-0.5 flex-shrink-0" />
+            <span>kelly.blackwell@example.com</span>
+          </div>
+          <div className="flex items-start gap-1">
+            <Phone className="w-2.5 h-2.5 text-slate-400 mt-0.5 flex-shrink-0" />
+            <span>(210) 286-1624</span>
+          </div>
+          <div className="flex items-start gap-1">
+            <MapPin className="w-2.5 h-2.5 text-slate-400 mt-0.5 flex-shrink-0" />
+            <span>Weston, FL, United States</span>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <h4 className="font-bold text-[8px] text-slate-700 border-b border-slate-300 pb-1 mb-2">SKILLS</h4>
+        <ul className="space-y-0.5 text-[7px] text-slate-600">
+          <li>• Analytical Thinking</li>
+          <li>• Team Leadership</li>
+          <li>• Organization</li>
+          <li>• Strong Communication</li>
+          <li>• MS Office Suite</li>
+        </ul>
+      </div>
+    </div>
+    <div className="flex-1 p-3">
+      <div className="mb-3">
+        <h4 className="font-bold text-[9px] text-slate-800 border-b border-slate-300 pb-1 mb-1.5">SUMMARY</h4>
+        <p className="text-slate-600 leading-relaxed">
+          Administrative assistant with 9+ years of experience organizing presentations, preparing reports, 
+          and maintaining confidentiality. Expertise in Microsoft Excel.
+        </p>
+      </div>
+      
+      <div className="mb-3">
+        <h4 className="font-bold text-[9px] text-slate-800 border-b border-slate-300 pb-1 mb-1.5">EXPERIENCE</h4>
+        <div className="mb-2">
+          <div className="flex justify-between items-start">
+            <p className="font-semibold text-[8px]">Administrative Assistant</p>
+            <p className="text-[7px] text-slate-500">Sep 2017 — Current</p>
+          </div>
+          <p className="text-blue-600 text-[7px]">Redford & Sons, Boston, MA</p>
+          <ul className="text-slate-600 space-y-0.5 mt-0.5">
+            <li>• Schedule and coordinate meetings for executives</li>
+            <li>• Trained 2 assistants during company expansion</li>
+          </ul>
+        </div>
+        <div>
+          <div className="flex justify-between items-start">
+            <p className="font-semibold text-[8px]">Secretary</p>
+            <p className="text-[7px] text-slate-500">Jun 2016 — Aug 2017</p>
+          </div>
+          <p className="text-blue-600 text-[7px]">Bright Spot Ltd., Boston</p>
+        </div>
+      </div>
+      
+      <div>
+        <h4 className="font-bold text-[9px] text-slate-800 border-b border-slate-300 pb-1 mb-1.5">EDUCATION</h4>
+        <p className="font-semibold text-[8px]">Bachelor of Arts, Finance</p>
+        <p className="text-slate-500 text-[7px]">Brown University • 2004 — 2009</p>
+      </div>
+    </div>
+  </div>
+);
 
-// Dynamic ATS Scoring Function
-const calculateDynamicAtsScore = (template: typeof templates[0]): number => {
-  let score = template.baseAtsScore;
-  
-  // Bonus for popularity (affects ATS readability - popular = well tested)
-  const downloads = parseInt(template.downloads);
-  if (downloads >= 15000) score += 3;
-  else if (downloads >= 10000) score += 2;
-  else if (downloads >= 5000) score += 1;
-  
-  // Bonus for high rating (quality = better ATS compatibility)
-  if (template.rating >= 4.8) score += 2;
-  else if (template.rating >= 4.6) score += 1;
-  
-  // Template category bonus
-  if (template.atsOptimized) score += 2;
-  
-  // Keyword count bonus
-  score += Math.min(template.keywords.length, 2);
-  
-  // Cap at 100
-  return Math.min(score, 100);
-};
+const HowardTemplate = () => (
+  <div className="h-full text-[7px] bg-white p-4 overflow-hidden">
+    <div className="text-center border-b border-slate-300 pb-2 mb-3">
+      <h3 className="font-bold text-[14px] text-slate-800 tracking-wide">HOWARD JONES</h3>
+      <p className="text-slate-600 text-[9px] mt-0.5">Lawyer</p>
+      <p className="text-[7px] text-slate-500 mt-1">
+        San Francisco, CA | howard.jones@gmail.com | (415) 555-2671
+      </p>
+    </div>
+    
+    <div className="mb-3">
+      <h4 className="font-bold text-[9px] text-slate-700 text-center border-b border-slate-200 pb-1 mb-1.5">SUMMARY</h4>
+      <p className="text-slate-600 leading-relaxed text-center">
+        Experienced Lawyer with passion for justice. Skilled in public speaking with proven track record 
+        of achieving favorable outcomes. Adept in preparing trials and presenting cases.
+      </p>
+    </div>
+    
+    <div className="mb-3">
+      <h4 className="font-bold text-[9px] text-slate-700 text-center border-b border-slate-200 pb-1 mb-1.5">EXPERIENCE</h4>
+      <div className="mb-2">
+        <div className="flex justify-between">
+          <p className="font-semibold text-[8px]">Lawyer, Madison and Fletcher Attorneys</p>
+          <p className="text-[7px] text-slate-500">Dec 2010 — Aug 2018</p>
+        </div>
+        <ul className="text-slate-600 space-y-0.5 mt-0.5">
+          <li>• Prepared legal documents and presented cases</li>
+          <li>• Filed briefings and collected evidence</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div className="grid grid-cols-2 gap-3">
+      <div>
+        <h4 className="font-bold text-[9px] text-slate-700 border-b border-slate-200 pb-1 mb-1.5">EDUCATION</h4>
+        <p className="font-semibold text-[8px]">New York Law School</p>
+        <p className="text-[7px] text-slate-500">Juris Doctor • 2003 — 2006</p>
+      </div>
+      <div>
+        <h4 className="font-bold text-[9px] text-slate-700 border-b border-slate-200 pb-1 mb-1.5">SKILLS</h4>
+        <p className="text-[7px] text-slate-600">Regulatory Compliance • Contract Negotiation • Family Law • Mediation</p>
+      </div>
+    </div>
+  </div>
+);
+
+const SamanthaTemplate = () => (
+  <div className="h-full flex text-[7px] bg-white overflow-hidden">
+    <div className="w-[32%] bg-gradient-to-b from-blue-600 to-blue-700 text-white p-3">
+      <div className="w-12 h-12 rounded-full bg-blue-300 mx-auto mb-2 flex items-center justify-center border-2 border-white">
+        <span className="text-blue-700 font-bold text-[10px]">SW</span>
+      </div>
+      <h3 className="text-center font-bold text-[10px] mb-0.5">Samantha Williams</h3>
+      <p className="text-center text-blue-200 text-[8px] mb-2">Senior Analyst</p>
+      
+      <div className="space-y-1 text-[7px] mb-3">
+        <div className="flex items-center gap-1">
+          <MapPin className="w-2.5 h-2.5" />
+          <span>New York, NY</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Mail className="w-2.5 h-2.5" />
+          <span className="truncate">samantha@email.com</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Phone className="w-2.5 h-2.5" />
+          <span>(555) 789-1234</span>
+        </div>
+      </div>
+      
+      <div>
+        <h4 className="font-bold text-[8px] border-b border-blue-400 pb-1 mb-1.5">SKILLS</h4>
+        <ul className="space-y-0.5">
+          {['Project Management', 'Data Analysis', 'SQL & Excel', 'Business Intelligence'].map(skill => (
+            <li key={skill} className="flex items-center gap-1 text-[7px]">
+              <div className="w-1 h-1 rounded-full bg-blue-300"></div>
+              {skill}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+    <div className="flex-1 p-3">
+      <div className="mb-3">
+        <h4 className="font-bold text-[9px] text-slate-800 border-b border-slate-300 pb-1 mb-1.5">SUMMARY</h4>
+        <p className="text-slate-600 leading-relaxed">
+          Senior Analyst with 5+ years of experience in data analysis and business intelligence. 
+          Skilled in driving operational efficiency and data-driven strategies.
+        </p>
+      </div>
+      
+      <div className="mb-3">
+        <h4 className="font-bold text-[9px] text-slate-800 border-b border-slate-300 pb-1 mb-1.5">EXPERIENCE</h4>
+        <div className="mb-2">
+          <div className="flex justify-between items-start">
+            <p className="font-semibold text-[8px]">Senior Analyst</p>
+            <p className="text-[7px] text-slate-500">Jul 2021 — Current</p>
+          </div>
+          <p className="text-blue-600 text-[7px]">Loom & Lantern Co. - New York</p>
+          <ul className="text-slate-600 space-y-0.5 mt-0.5">
+            <li>• Spearhead data analysis for key business functions</li>
+            <li>• Conduct market analysis, resulting in 15% increase</li>
+          </ul>
+        </div>
+        <div>
+          <div className="flex justify-between items-start">
+            <p className="font-semibold text-[8px]">Business Analyst</p>
+            <p className="text-[7px] text-slate-500">Aug 2017 — May 2021</p>
+          </div>
+          <p className="text-blue-600 text-[7px]">Willow & Wren Ltd.</p>
+        </div>
+      </div>
+      
+      <div>
+        <h4 className="font-bold text-[9px] text-slate-800 border-b border-slate-300 pb-1 mb-1.5">EDUCATION</h4>
+        <p className="font-semibold text-[8px]">New York University</p>
+        <p className="text-slate-500 text-[7px]">B.S. Economics • 2013 — 2017</p>
+      </div>
+    </div>
+  </div>
+);
+
+const JessieTemplate = () => (
+  <div className="h-full text-[7px] bg-white overflow-hidden">
+    <div className="bg-gradient-to-r from-violet-600 to-purple-600 text-white p-3">
+      <h3 className="font-bold text-[12px]">Jessie Smith</h3>
+      <p className="text-violet-200 text-[8px]">Human Resource Manager</p>
+      <p className="text-[7px] text-violet-200 mt-1">
+        Plano, TX | email@youremail.com | (469) 385-2948
+      </p>
+    </div>
+    <div className="p-3">
+      <div className="mb-3">
+        <h4 className="font-bold text-[9px] text-violet-600 border-b border-violet-200 pb-1 mb-1.5">SUMMARY</h4>
+        <p className="text-slate-600 leading-relaxed">
+          HR generalist with 8 years of experience in hiring, training, and employee management. 
+          Worked with labor unions to negotiate compensation packages.
+        </p>
+      </div>
+      
+      <div className="mb-3">
+        <h4 className="font-bold text-[9px] text-violet-600 border-b border-violet-200 pb-1 mb-1.5">EXPERIENCE</h4>
+        <div className="mb-2">
+          <div className="flex justify-between">
+            <p className="font-semibold text-[8px]">Human Resource Manager</p>
+            <p className="text-[7px] text-slate-500">04/2019 - Current</p>
+          </div>
+          <p className="text-violet-600 text-[7px]">Jim's Widget Factory, Plano, TX</p>
+          <ul className="text-slate-600 space-y-0.5 mt-0.5">
+            <li>• Implement effective company policies for compliance</li>
+            <li>• Increased retention rates to over 90%</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <h4 className="font-bold text-[9px] text-violet-600 border-b border-violet-200 pb-1 mb-1.5">EDUCATION</h4>
+          <p className="font-semibold text-[8px]">Master, Human Resources</p>
+          <p className="text-[7px] text-slate-500">University of Texas • 2007 - 2011</p>
+        </div>
+        <div>
+          <h4 className="font-bold text-[9px] text-violet-600 border-b border-violet-200 pb-1 mb-1.5">SKILLS</h4>
+          <div className="flex flex-wrap gap-1">
+            {['Analytics', 'Communication', 'Leadership'].map(skill => (
+              <span key={skill} className="bg-violet-50 text-violet-600 px-1 py-0.5 rounded text-[6px]">
+                {skill}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const WesTemplate = () => (
+  <div className="h-full flex text-[7px] bg-white overflow-hidden">
+    <div className="flex-1 p-3">
+      <h3 className="font-bold text-[12px] text-slate-900">WES TURNER</h3>
+      <p className="text-amber-600 text-[9px] font-medium mb-2">SALES MANAGER</p>
+      
+      <div className="mb-3">
+        <h4 className="font-bold text-[8px] text-slate-800 bg-slate-100 px-1 py-0.5 mb-1.5">SUMMARY</h4>
+        <p className="text-slate-600 leading-relaxed">
+          Experienced Sales Manager with five years of industry experience overseeing sales figures 
+          and new account developments.
+        </p>
+      </div>
+      
+      <div className="mb-3">
+        <h4 className="font-bold text-[8px] text-slate-800 bg-slate-100 px-1 py-0.5 mb-1.5">EXPERIENCE</h4>
+        <div className="mb-2">
+          <p className="font-semibold text-[8px]">Sales Manager, Winthrop and Lee</p>
+          <p className="text-[7px] text-slate-500">Boulder • Nov 2014 - Sep 2019</p>
+          <ul className="text-slate-600 space-y-0.5 mt-0.5">
+            <li>• Achieved 25% increase in sales revenue</li>
+            <li>• Monitored competition and adjusted costs</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div>
+        <h4 className="font-bold text-[8px] text-slate-800 bg-slate-100 px-1 py-0.5 mb-1.5">EDUCATION</h4>
+        <p className="font-semibold text-[8px]">Colorado College</p>
+        <p className="text-[7px] text-slate-500">Bachelor of Marketing • 2008 - 2010</p>
+      </div>
+    </div>
+    <div className="w-[28%] bg-amber-50 p-2">
+      <h4 className="font-bold text-[8px] text-amber-800 mb-1.5">DETAILS</h4>
+      <div className="space-y-1 text-[7px] text-slate-600 mb-3">
+        <p>Boulder, CO</p>
+        <p>(720) 315-8237</p>
+        <p>wes@gmail.com</p>
+      </div>
+      
+      <h4 className="font-bold text-[8px] text-amber-800 mb-1.5">SKILLS</h4>
+      <ul className="space-y-0.5 text-[7px] text-slate-600">
+        <li>Project Management</li>
+        <li>Business Development</li>
+        <li>Communication</li>
+      </ul>
+    </div>
+  </div>
+);
+
+const SebastianTemplate = () => (
+  <div className="h-full flex text-[7px] bg-white overflow-hidden">
+    <div className="w-[30%] bg-gradient-to-b from-cyan-500 to-teal-600 text-white p-3">
+      <div className="w-10 h-10 rounded-full bg-white/20 mx-auto mb-2 flex items-center justify-center border-2 border-white">
+        <span className="text-[9px] font-bold">SW</span>
+      </div>
+      <h4 className="text-[8px] font-bold mt-2 mb-1.5">DETAILS</h4>
+      <div className="space-y-1 text-[7px]">
+        <p>Riverdale, NY</p>
+        <p>(917) 324-1818</p>
+        <p>hw12@yahoo.com</p>
+      </div>
+      
+      <h4 className="text-[8px] font-bold mt-3 mb-1.5">SKILLS</h4>
+      <ul className="space-y-0.5">
+        {['Communication', 'Motivated', 'MS Office', 'Social Media'].map(skill => (
+          <li key={skill} className="flex items-center gap-1 text-[7px]">
+            <div className="w-1 h-1 rounded-full bg-white"></div>
+            {skill}
+          </li>
+        ))}
+      </ul>
+    </div>
+    <div className="flex-1 p-3">
+      <h3 className="font-bold text-[12px] text-slate-900">SEBASTIAN</h3>
+      <h3 className="font-bold text-[12px] text-slate-900 mb-0.5">WILDER</h3>
+      <p className="text-cyan-600 text-[8px] font-medium mb-2">Student</p>
+      
+      <div className="mb-3">
+        <h4 className="font-bold text-[9px] text-cyan-600 border-b border-cyan-200 pb-1 mb-1.5">SUMMARY</h4>
+        <p className="text-slate-600 leading-relaxed">
+          Hardworking student seeking employment with positive attitude and motivation to learn new skills.
+        </p>
+      </div>
+      
+      <div className="mb-3">
+        <h4 className="font-bold text-[9px] text-cyan-600 border-b border-cyan-200 pb-1 mb-1.5">EXPERIENCE</h4>
+        <p className="font-semibold text-[8px]">Sales Associate</p>
+        <p className="text-[7px] text-slate-500">Big Apple Bookstore • Sep 2015 - Jun 2018</p>
+      </div>
+      
+      <div>
+        <h4 className="font-bold text-[9px] text-cyan-600 border-b border-cyan-200 pb-1 mb-1.5">EDUCATION</h4>
+        <p className="font-semibold text-[8px]">Bachelor, Communications</p>
+        <p className="text-[7px] text-slate-500">New York University • 2016 - Current</p>
+      </div>
+    </div>
+  </div>
+);
+
+// Nebula Template - Modern clean with accent
+const NebulaTemplate = () => (
+  <div className="h-full text-[7px] bg-white p-4 overflow-hidden">
+    <div className="border-l-4 border-indigo-500 pl-3 mb-4">
+      <h3 className="font-bold text-[14px] text-slate-800">ALEX JOHNSON</h3>
+      <p className="text-indigo-600 text-[9px] font-medium">Full Stack Developer</p>
+      <div className="flex gap-3 mt-1 text-[7px] text-slate-500">
+        <span>✉ alex@email.com</span>
+        <span>☎ (555) 123-4567</span>
+      </div>
+    </div>
+    
+    <p className="text-slate-600 border-l-2 border-indigo-200 pl-2 mb-3 italic text-[7px]">
+      Passionate developer with 5+ years of experience building scalable web applications.
+    </p>
+    
+    <div className="grid grid-cols-3 gap-3">
+      <div className="col-span-2">
+        <h4 className="font-bold text-[8px] text-indigo-600 mb-2 flex items-center gap-1">
+          <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>EXPERIENCE
+        </h4>
+        <div className="mb-2 pl-2">
+          <p className="font-semibold text-[8px]">Senior Developer</p>
+          <p className="text-indigo-500 text-[7px]">TechCorp Inc.</p>
+          <p className="text-slate-400 text-[6px]">2020 — Present</p>
+        </div>
+      </div>
+      <div>
+        <h4 className="font-bold text-[8px] text-indigo-600 mb-2">SKILLS</h4>
+        <div className="space-y-1">
+          {['React', 'Node.js', 'Python'].map(skill => (
+            <div key={skill}>
+              <p className="text-[7px]">{skill}</p>
+              <div className="h-1 bg-slate-200 rounded-full">
+                <div className="h-full bg-indigo-500 rounded-full" style={{width: '85%'}}></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Stellar Template - Minimal elegant
+const StellarTemplate = () => (
+  <div className="h-full text-[7px] bg-white p-4 overflow-hidden">
+    <div className="text-center mb-4">
+      <h3 className="font-light text-[16px] text-slate-800 tracking-wide">EMMA DAVIS</h3>
+      <div className="w-8 h-0.5 bg-slate-300 mx-auto my-2"></div>
+      <p className="text-slate-500 text-[9px]">Marketing Manager</p>
+      <div className="flex justify-center gap-4 mt-2 text-[7px] text-slate-400">
+        <span>emma@email.com</span>
+        <span>New York, NY</span>
+      </div>
+    </div>
+    
+    <p className="text-center text-slate-600 mb-4 max-w-[80%] mx-auto text-[7px]">
+      Strategic marketing professional with expertise in digital campaigns and brand development.
+    </p>
+    
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <h4 className="font-semibold text-[7px] uppercase tracking-widest text-slate-400 mb-2">Experience</h4>
+        <p className="font-medium text-[8px]">Marketing Manager</p>
+        <p className="text-slate-500 text-[7px]">Brand Co. · 2019 — Present</p>
+      </div>
+      <div>
+        <h4 className="font-semibold text-[7px] uppercase tracking-widest text-slate-400 mb-2">Skills</h4>
+        <div className="flex flex-wrap gap-1">
+          {['SEO', 'Analytics', 'Copywriting'].map(skill => (
+            <span key={skill} className="border border-slate-200 px-2 py-0.5 rounded-full text-[6px]">{skill}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Orbit Template - Creative with timeline
+const OrbitTemplate = () => (
+  <div className="h-full text-[7px] bg-gradient-to-br from-rose-50 to-orange-50 overflow-hidden">
+    <div className="bg-gradient-to-r from-rose-500 to-orange-500 text-white p-3">
+      <div className="flex items-center gap-2">
+        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold border-2 border-white/50">
+          MR
+        </div>
+        <div>
+          <h3 className="font-bold text-[12px]">MAYA RODRIGUEZ</h3>
+          <p className="text-rose-100 text-[8px]">UX Designer</p>
+        </div>
+      </div>
+    </div>
+    
+    <div className="p-3">
+      <div className="bg-white p-2 rounded-lg shadow-sm mb-2">
+        <p className="text-slate-600 text-[7px]">Creative designer passionate about user-centered design.</p>
+      </div>
+      
+      <div className="grid grid-cols-3 gap-2">
+        <div className="col-span-2 bg-white p-2 rounded-lg shadow-sm">
+          <h4 className="font-bold text-[8px] text-rose-600 mb-1">💼 Experience</h4>
+          <div className="border-l-2 border-rose-200 pl-2">
+            <p className="font-semibold text-[8px]">Lead UX Designer</p>
+            <p className="text-rose-500 text-[7px]">Design Studio</p>
+          </div>
+        </div>
+        <div className="bg-white p-2 rounded-lg shadow-sm">
+          <h4 className="font-bold text-[8px] text-rose-600 mb-1">⚡ Skills</h4>
+          <div className="flex flex-wrap gap-0.5">
+            {['Figma', 'UI/UX'].map(skill => (
+              <span key={skill} className="bg-rose-100 text-rose-600 px-1 py-0.5 rounded text-[6px]">{skill}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const templates = [
+  { 
+    id: 'cosmos', 
+    name: 'Cosmos', 
+    category: ['all', 'professional', 'ats', 'simple'],
+    component: KellyTemplate,
+    description: 'Clean two-column professional layout'
+  },
+  { 
+    id: 'celestial', 
+    name: 'Celestial', 
+    category: ['all', 'one-column', 'ats', 'professional'],
+    component: HowardTemplate,
+    description: 'Classic centered single-column design'
+  },
+  { 
+    id: 'galaxy', 
+    name: 'Galaxy', 
+    category: ['all', 'with-photo', 'modern', 'professional'],
+    component: SamanthaTemplate,
+    description: 'Modern with photo sidebar'
+  },
+  { 
+    id: 'aurora', 
+    name: 'Aurora', 
+    category: ['all', 'modern', 'professional'],
+    component: JessieTemplate,
+    description: 'Modern gradient header design'
+  },
+  { 
+    id: 'lunar', 
+    name: 'Lunar', 
+    category: ['all', 'professional', 'simple'],
+    component: WesTemplate,
+    description: 'Two-column with colored sidebar'
+  },
+  { 
+    id: 'eclipse', 
+    name: 'Eclipse', 
+    category: ['all', 'with-photo', 'simple'],
+    component: SebastianTemplate,
+    description: 'Entry-level with photo placeholder'
+  },
+  { 
+    id: 'nebula', 
+    name: 'Nebula', 
+    category: ['all', 'modern', 'professional'],
+    component: NebulaTemplate,
+    description: 'Modern clean with accent line'
+  },
+  { 
+    id: 'stellar', 
+    name: 'Stellar', 
+    category: ['all', 'simple', 'ats'],
+    component: StellarTemplate,
+    description: 'Minimal elegant design'
+  },
+  { 
+    id: 'orbit', 
+    name: 'Orbit', 
+    category: ['all', 'modern', 'with-photo'],
+    component: OrbitTemplate,
+    description: 'Creative with timeline design'
+  },
+];
 
 const Templates: React.FC = () => {
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('All');
-  const [experience, setExperience] = useState<'all' | 'fresher' | 'professional'>('all');
-  const [atsOnly, setAtsOnly] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<'popular' | 'rating' | 'newest' | 'ats'>('popular');
+  const navigate = useNavigate();
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [hoveredTemplate, setHoveredTemplate] = useState<string | null>(null);
 
-  // Calculate dynamic ATS scores for all templates
-  const templatesWithScores = useMemo(() => {
-    return templates.map(template => ({
-      ...template,
-      dynamicAtsScore: calculateDynamicAtsScore(template),
-    }));
-  }, []);
-
-  const filteredTemplates = templatesWithScores.filter(template => {
-    const matchesSearch = template.name.toLowerCase().includes(search.toLowerCase()) ||
-                         template.category.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = category === 'All' || template.category === category;
-    const matchesExperience = experience === 'all' || template.experience === experience || template.experience === 'all';
-    const matchesAts = !atsOnly || template.atsOptimized;
-    
-    return matchesSearch && matchesCategory && matchesExperience && matchesAts;
+  const filteredTemplates = templates.filter(t => {
+    const matchesCategory = selectedCategory === 'all' || t.category.includes(selectedCategory);
+    const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         t.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
 
-  const sortedTemplates = [...filteredTemplates].sort((a, b) => {
-    if (sortBy === 'rating') return b.rating - a.rating;
-    if (sortBy === 'ats') return b.dynamicAtsScore - a.dynamicAtsScore;
-    if (sortBy === 'popular') return parseInt(b.downloads) - parseInt(a.downloads);
-    return 0;
-  });
-
-  const getGradient = (category: string) => {
-    switch (category) {
-      case 'Classic': return 'from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900';
-      case 'Modern': return 'from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30';
-      case 'Creative': return 'from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30';
-      case 'Simple': return 'from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900';
-      case 'Academic': return 'from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30';
-      case 'Entry Level': return 'from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30';
-      case 'Tech': return 'from-cyan-100 to-teal-100 dark:from-cyan-900/30 dark:to-teal-900/30';
-      default: return 'from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900';
-    }
+  const handleUseTemplate = (templateId: string) => {
+    navigate(`/builder?template=${templateId}`);
   };
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-12">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-2xl mx-auto mb-12"
-        >
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            Resume <span className="gradient-text">Templates</span>
-          </h1>
-          <p className="text-muted-foreground">
-            Choose from our collection of 25+ professional, ATS-optimized resume templates 
-            designed to help you land your dream job.
-          </p>
-        </motion.div>
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 py-8">
+        <div className="container mx-auto px-4">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-8"
+          >
+            <h1 className="text-4xl md:text-5xl font-bold text-primary mb-3">
+              Resume templates
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg mb-6">
+              Simple to use and ready in minutes resume templates — give it a try for free now!
+            </p>
 
-        {/* Filters */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-card border border-border rounded-2xl p-6 mb-8"
-        >
-          <div className="flex flex-col lg:flex-row gap-4">
             {/* Search */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <div className="max-w-md mx-auto relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
                 placeholder="Search templates..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
+          </motion.div>
 
-            {/* Category Pills */}
-            <div className="flex flex-wrap gap-2">
-              {categories.slice(0, 5).map((cat) => (
-                <Button
-                  key={cat}
-                  variant={category === cat ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setCategory(cat)}
-                  className={cn(category === cat && 'gradient-bg')}
+          {/* Category Tabs */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="flex flex-wrap justify-center gap-2 mb-10"
+          >
+            {categories.map((cat) => {
+              const Icon = cat.icon;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    selectedCategory === cat.id
+                      ? 'bg-primary text-white shadow-lg'
+                      : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700'
+                  }`}
                 >
-                  {cat}
-                </Button>
-              ))}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    More <ChevronDown className="w-4 h-4 ml-1" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {categories.slice(5).map((cat) => (
-                    <DropdownMenuItem key={cat} onClick={() => setCategory(cat)}>
-                      {cat}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
+                  <Icon className="w-4 h-4" />
+                  {cat.name}
+                </button>
+              );
+            })}
+          </motion.div>
 
-          {/* Additional Filters */}
-          <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-border">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Filters:</span>
-            </div>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  Experience: {experience === 'all' ? 'All' : experience === 'fresher' ? 'Fresher' : 'Professional'}
-                  <ChevronDown className="w-4 h-4 ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setExperience('all')}>All Levels</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setExperience('fresher')}>Fresher / Entry</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setExperience('professional')}>Professional</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button
-              variant={atsOnly ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setAtsOnly(!atsOnly)}
-              className={cn(atsOnly && 'gradient-bg')}
-            >
-              ATS Optimized
-            </Button>
-
-            <div className="ml-auto flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    Sort: {sortBy === 'popular' ? 'Popular' : sortBy === 'rating' ? 'Top Rated' : sortBy === 'ats' ? 'Best ATS Score' : 'Newest'}
-                    <ChevronDown className="w-4 h-4 ml-1" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => setSortBy('popular')}>Most Popular</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('rating')}>Top Rated</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('ats')}>Best ATS Score</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('newest')}>Newest</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <div className="flex border border-border rounded-lg overflow-hidden">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className={cn('rounded-none', viewMode === 'grid' && 'bg-muted')}
+          {/* Templates Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredTemplates.map((template, index) => {
+              const TemplateComponent = template.component;
+              return (
+                <motion.div
+                  key={template.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="group relative"
+                  onMouseEnter={() => setHoveredTemplate(template.id)}
+                  onMouseLeave={() => setHoveredTemplate(null)}
                 >
-                  <LayoutGrid className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className={cn('rounded-none', viewMode === 'list' && 'bg-muted')}
-                >
-                  <LayoutList className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Results Count */}
-        <p className="text-sm text-muted-foreground mb-6">
-          Showing {sortedTemplates.length} templates
-        </p>
-
-        {/* Templates Grid */}
-        <div className={cn(
-          viewMode === 'grid' 
-            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' 
-            : 'space-y-4'
-        )}>
-          {sortedTemplates.map((template, index) => (
-            <motion.div
-              key={template.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Link to={`/templates/${template.id}`}>
-                <div className={cn(
-                  'group cursor-pointer',
-                  viewMode === 'list' && 'flex gap-6 items-center bg-card border border-border rounded-2xl p-4'
-                )}>
-                  {/* Template Preview */}
-                  <div className={cn(
-                    'rounded-2xl p-4 border border-border overflow-hidden relative hover-lift',
-                    `bg-gradient-to-br ${getGradient(template.category)}`,
-                    viewMode === 'grid' ? 'aspect-[3/4] mb-4' : 'w-32 h-40 flex-shrink-0'
-                  )}>
-                    {/* Resume Content - Different layouts per category */}
-                    <div className="bg-white dark:bg-slate-950 rounded-lg h-full shadow-lg overflow-hidden">
-                      {/* Template Type 1: Classic - Header on top */}
-                      {(template.category === 'Classic' || template.category === 'Simple') && (
-                        <div className="h-full flex flex-col p-3">
-                          <div className="text-center border-b border-gray-200 dark:border-gray-700 pb-2 mb-2">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 mx-auto mb-1" />
-                            <div className="h-2 w-16 bg-gray-300 dark:bg-gray-600 rounded mx-auto" />
-                            <div className="h-1 w-20 bg-gray-200 dark:bg-gray-700 rounded mx-auto mt-1" />
-                          </div>
-                          <div className="space-y-2 flex-1">
-                            <div className="h-1.5 w-12 bg-blue-200 dark:bg-blue-800 rounded" />
-                            <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
-                            <div className="h-1 w-5/6 bg-gray-200 dark:bg-gray-700 rounded" />
-                            <div className="h-1.5 w-14 bg-blue-200 dark:bg-blue-800 rounded mt-2" />
-                            <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
-                            <div className="h-1 w-4/5 bg-gray-200 dark:bg-gray-700 rounded" />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Template Type 2: Modern - Sidebar */}
-                      {template.category === 'Modern' && (
-                        <div className="h-full flex">
-                          <div className="w-1/3 bg-gradient-to-b from-blue-500 to-indigo-600 p-2">
-                            <div className="w-6 h-6 rounded-full bg-white/30 mx-auto mb-2" />
-                            <div className="h-1 w-8 bg-white/50 rounded mx-auto" />
-                            <div className="space-y-1 mt-3">
-                              <div className="h-0.5 w-full bg-white/30 rounded" />
-                              <div className="h-0.5 w-4/5 bg-white/30 rounded" />
-                            </div>
-                          </div>
-                          <div className="flex-1 p-2">
-                            <div className="h-1.5 w-12 bg-gray-300 dark:bg-gray-600 rounded mb-2" />
-                            <div className="space-y-1">
-                              <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
-                              <div className="h-1 w-5/6 bg-gray-200 dark:bg-gray-700 rounded" />
-                              <div className="h-1 w-4/5 bg-gray-200 dark:bg-gray-700 rounded" />
-                            </div>
-                            <div className="h-1.5 w-10 bg-gray-300 dark:bg-gray-600 rounded mt-2 mb-1" />
-                            <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Template Type 3: Creative - Colorful */}
-                      {template.category === 'Creative' && (
-                        <div className="h-full p-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-purple-500" />
-                            <div>
-                              <div className="h-2 w-14 bg-purple-300 dark:bg-purple-700 rounded" />
-                              <div className="h-1 w-10 bg-pink-200 dark:bg-pink-800 rounded mt-0.5" />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="bg-gradient-to-br from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30 rounded p-1.5">
-                              <div className="h-1 w-6 bg-purple-300 dark:bg-purple-700 rounded mb-1" />
-                              <div className="h-0.5 w-full bg-purple-200 dark:bg-purple-800 rounded" />
-                            </div>
-                            <div className="bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 rounded p-1.5">
-                              <div className="h-1 w-6 bg-blue-300 dark:bg-blue-700 rounded mb-1" />
-                              <div className="h-0.5 w-full bg-blue-200 dark:bg-blue-800 rounded" />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Template Type 4: Academic */}
-                      {template.category === 'Academic' && (
-                        <div className="h-full p-3">
-                          <div className="border-b-2 border-amber-400 dark:border-amber-600 pb-2 mb-2">
-                            <div className="h-2.5 w-20 bg-gray-400 dark:bg-gray-500 rounded" />
-                            <div className="h-1 w-24 bg-gray-300 dark:bg-gray-600 rounded mt-1" />
-                          </div>
-                          <div className="space-y-2">
-                            <div className="h-1.5 w-16 bg-amber-300 dark:bg-amber-700 rounded" />
-                            <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
-                            <div className="h-1 w-5/6 bg-gray-200 dark:bg-gray-700 rounded" />
-                            <div className="h-1.5 w-14 bg-amber-300 dark:bg-amber-700 rounded mt-2" />
-                            <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Template Type 5: Entry Level */}
-                      {template.category === 'Entry Level' && (
-                        <div className="h-full p-3">
-                          <div className="flex items-center gap-2 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg p-2 mb-2">
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-400 to-emerald-500" />
-                            <div>
-                              <div className="h-1.5 w-12 bg-green-400 dark:bg-green-600 rounded" />
-                              <div className="h-1 w-16 bg-green-300 dark:bg-green-700 rounded mt-0.5" />
-                            </div>
-                          </div>
-                          <div className="space-y-1.5">
-                            <div className="h-1.5 w-10 bg-emerald-300 dark:bg-emerald-700 rounded" />
-                            <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
-                            <div className="h-1 w-4/5 bg-gray-200 dark:bg-gray-700 rounded" />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Template Type 6: Tech */}
-                      {template.category === 'Tech' && (
-                        <div className="h-full p-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="w-7 h-7 rounded-md bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                              <div className="w-3 h-3 border border-white/50 rounded-sm" />
-                            </div>
-                            <div>
-                              <div className="h-2 w-14 bg-cyan-300 dark:bg-cyan-700 rounded" />
-                              <div className="h-1 w-18 bg-gray-300 dark:bg-gray-600 rounded mt-0.5" />
-                            </div>
-                          </div>
-                          <div className="flex gap-1 mb-2">
-                            <div className="px-1.5 py-0.5 bg-cyan-100 dark:bg-cyan-900/50 rounded text-[6px]">
-                              <div className="w-4 h-1 bg-cyan-400 rounded" />
-                            </div>
-                            <div className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 rounded text-[6px]">
-                              <div className="w-5 h-1 bg-blue-400 rounded" />
-                            </div>
-                            <div className="px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 rounded text-[6px]">
-                              <div className="w-4 h-1 bg-indigo-400 rounded" />
-                            </div>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded" />
-                            <div className="h-1 w-5/6 bg-gray-200 dark:bg-gray-700 rounded" />
-                          </div>
-                        </div>
-                      )}
+                  <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200 dark:border-slate-700">
+                    {/* Template Preview */}
+                    <div className="aspect-[8.5/11] bg-white overflow-hidden">
+                      <TemplateComponent />
                     </div>
-
-                    {/* ATS Badge */}
-                    {template.atsOptimized && (
-                      <div className="absolute top-2 right-2 bg-green-500 text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
-                        ATS
-                      </div>
-                    )}
+                    
+                    {/* Template Info */}
+                    <div className="p-4 border-t dark:border-slate-700">
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{template.name}</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{template.description}</p>
+                    </div>
 
                     {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Button size="sm" className="gradient-bg">Use Template</Button>
+                    <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-center justify-center transition-opacity duration-300 ${
+                      hoveredTemplate === template.id ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                    }`}>
+                      <Button
+                        onClick={() => handleUseTemplate(template.id)}
+                        className="bg-primary hover:bg-primary/90 text-white px-8 py-3 text-lg rounded-lg"
+                      >
+                        Use This Template
+                      </Button>
                     </div>
                   </div>
-
-                  {/* Template Info */}
-                  <div className={cn(viewMode === 'list' && 'flex-1')}>
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-semibold text-sm">{template.name}</h3>
-                      {viewMode === 'list' && (
-                        <Button size="sm" className="gradient-bg">Use Template</Button>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                      <span className="px-2 py-0.5 bg-muted rounded-full">{template.category}</span>
-                      <div className="flex items-center gap-1">
-                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                        {template.rating}
-                      </div>
-                      <span>{template.downloads} downloads</span>
-                    </div>
-
-                    {/* Dynamic ATS Score Display */}
-                    <div className="space-y-2 mt-3 pt-3 border-t border-border">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Award className="w-4 h-4 text-blue-500" />
-                          <span className="text-xs font-semibold">ATS Score</span>
-                        </div>
-                        <span className={cn(
-                          'text-xs font-bold px-2 py-1 rounded-full',
-                          template.dynamicAtsScore >= 85 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
-                          template.dynamicAtsScore >= 75 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
-                          'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                        )}>
-                          {template.dynamicAtsScore}/100
-                        </span>
-                      </div>
-                      
-                      {/* ATS Progress Bar */}
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${template.dynamicAtsScore}%` }}
-                          transition={{ duration: 0.8, ease: 'easeOut' }}
-                          className={cn(
-                            'h-full rounded-full transition-all duration-500',
-                            template.dynamicAtsScore >= 85 ? 'bg-gradient-to-r from-green-400 to-green-600' :
-                            template.dynamicAtsScore >= 75 ? 'bg-gradient-to-r from-blue-400 to-blue-600' :
-                            'bg-gradient-to-r from-amber-400 to-amber-600'
-                          )}
-                        />
-                      </div>
-
-                      {/* ATS Insights */}
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <TrendingUp className="w-3 h-3" />
-                        <span>
-                          {template.dynamicAtsScore >= 85 ? '✨ Excellent for ATS' :
-                           template.dynamicAtsScore >= 75 ? '✓ Good for ATS' :
-                           '⚠ Limited ATS compatibility'}
-                        </span>
-                      </div>
-
-                      {/* Features */}
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {template.features.slice(0, 2).map((feature, idx) => (
-                          <span key={idx} className="text-[10px] bg-muted px-2 py-0.5 rounded-full">
-                            {feature}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
-
-        {sortedTemplates.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-muted-foreground">No templates found matching your criteria.</p>
-            <Button variant="outline" className="mt-4" onClick={() => {
-              setSearch('');
-              setCategory('All');
-              setExperience('all');
-              setAtsOnly(false);
-            }}>
-              Clear Filters
-            </Button>
+                </motion.div>
+              );
+            })}
           </div>
-        )}
+
+          {/* Empty State */}
+          {filteredTemplates.length === 0 && (
+            <div className="text-center py-16">
+              <p className="text-gray-500 dark:text-gray-400 text-lg">No templates found matching your criteria.</p>
+              <Button
+                variant="outline"
+                onClick={() => { setSelectedCategory('all'); setSearchQuery(''); }}
+                className="mt-4"
+              >
+                Clear Filters
+              </Button>
+            </div>
+          )}
+
+          {/* Bottom CTA */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-center mt-12"
+          >
+            <p className="text-gray-500 dark:text-gray-400 mb-4">
+              Can't decide? You can always change your template later.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/builder')}
+              className="px-8"
+            >
+              Start with blank resume
+            </Button>
+          </motion.div>
+        </div>
       </div>
     </Layout>
   );

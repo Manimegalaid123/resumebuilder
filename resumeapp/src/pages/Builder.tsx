@@ -1,4 +1,5 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
@@ -12,9 +13,13 @@ import {
   FolderOpen, 
   Award, 
   Wrench,
-  ChevronDown,
-  ChevronUp,
-  LayoutTemplate
+  LayoutTemplate,
+  Mail,
+  Phone,
+  MapPin,
+  Linkedin,
+  List,
+  PlusCircle
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -28,20 +33,43 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useResume } from '@/contexts/ResumeContext';
 import { cn } from '@/lib/utils';
 
-type SectionKey = 'personal' | 'education' | 'experience' | 'projects' | 'achievements' | 'skills';
+// Template options - matches Templates.tsx
+const templateOptions = [
+  { id: 'cosmos', name: 'Cosmos', style: 'sidebar-left' },
+  { id: 'celestial', name: 'Celestial', style: 'centered' },
+  { id: 'galaxy', name: 'Galaxy', style: 'sidebar-photo' },
+  { id: 'aurora', name: 'Aurora', style: 'header-gradient' },
+  { id: 'lunar', name: 'Lunar', style: 'sidebar-right' },
+  { id: 'eclipse', name: 'Eclipse', style: 'sidebar-photo-alt' },
+  { id: 'nebula', name: 'Nebula', style: 'modern-clean' },
+  { id: 'stellar', name: 'Stellar', style: 'minimal' },
+  { id: 'orbit', name: 'Orbit', style: 'creative' },
+];
+
+// Color accent options
+const colorOptions = [
+  { id: 'slate', name: 'Slate', primary: '#475569', secondary: '#f1f5f9' },
+  { id: 'blue', name: 'Blue', primary: '#2563eb', secondary: '#eff6ff' },
+  { id: 'emerald', name: 'Emerald', primary: '#059669', secondary: '#ecfdf5' },
+  { id: 'purple', name: 'Purple', primary: '#7c3aed', secondary: '#f5f3ff' },
+  { id: 'rose', name: 'Rose', primary: '#e11d48', secondary: '#fff1f2' },
+  { id: 'amber', name: 'Amber', primary: '#d97706', secondary: '#fffbeb' },
+  { id: 'cyan', name: 'Cyan', primary: '#0891b2', secondary: '#ecfeff' },
+  { id: 'indigo', name: 'Indigo', primary: '#4f46e5', secondary: '#eef2ff' },
+];
 
 const Builder: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const urlTemplate = searchParams.get('template') || 'cosmos';
+  
   const resumeRef = useRef<HTMLDivElement>(null);
   const [isListening, setIsListening] = useState(false);
   const [activeVoiceField, setActiveVoiceField] = useState<string | null>(null);
-  const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({
-    personal: true,
-    education: true,
-    experience: true,
-    projects: false,
-    achievements: false,
-    skills: true,
-  });
+  const [selectedTemplate, setSelectedTemplate] = useState(urlTemplate);
+  const [newSectionTitle, setNewSectionTitle] = useState('');
+  const [showAddSection, setShowAddSection] = useState(false);
+  const [selectedColor, setSelectedColor] = useState('slate');
+  const [isMonochrome, setIsMonochrome] = useState(false);
 
   const {
     resumeData,
@@ -61,12 +89,22 @@ const Builder: React.FC = () => {
     addSkill,
     updateSkill,
     removeSkill,
+    addCustomSection,
+    updateCustomSectionTitle,
+    removeCustomSection,
+    addCustomSectionItem,
+    updateCustomSectionItem,
+    removeCustomSectionItem,
     setTemplate,
   } = useResume();
 
-  const toggleSection = (section: SectionKey) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
+  // Set template from URL on mount
+  useEffect(() => {
+    if (urlTemplate) {
+      setSelectedTemplate(urlTemplate);
+      setTemplate(urlTemplate as any);
+    }
+  }, [urlTemplate, setTemplate]);
 
   const startVoiceInput = (fieldId: string) => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -129,38 +167,29 @@ const Builder: React.FC = () => {
   const SectionHeader: React.FC<{
     icon: React.ReactNode;
     title: string;
-    section: SectionKey;
     onAdd?: () => void;
-  }> = ({ icon, title, section, onAdd }) => (
-    <div 
-      className="flex items-center justify-between p-4 bg-muted/50 rounded-lg cursor-pointer"
-      onClick={() => toggleSection(section)}
-    >
+  }> = ({ icon, title, onAdd }) => (
+    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-lg gradient-bg text-primary-foreground">
           {icon}
         </div>
         <h3 className="font-semibold">{title}</h3>
       </div>
-      <div className="flex items-center gap-2">
-        {onAdd && (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAdd();
-            }}
-          >
-            <Plus className="w-4 h-4" />
-          </Button>
-        )}
-        {expandedSections[section] ? (
-          <ChevronUp className="w-5 h-5 text-muted-foreground" />
-        ) : (
-          <ChevronDown className="w-5 h-5 text-muted-foreground" />
-        )}
-      </div>
+      {onAdd && (
+        <Button
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onAdd();
+          }}
+          className="gap-1 gradient-bg"
+        >
+          <Plus className="w-4 h-4" />
+          Add
+        </Button>
+      )}
     </div>
   );
 
@@ -199,28 +228,58 @@ const Builder: React.FC = () => {
                 <h3 className="font-semibold">Choose Template</h3>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                {(['classic', 'modern', 'creative'] as const).map((template) => (
+                {templateOptions.map((template) => (
                   <button
-                    key={template}
-                    onClick={() => setTemplate(template)}
+                    key={template.id}
+                    onClick={() => {
+                      setSelectedTemplate(template.id);
+                      setTemplate(template.id as any);
+                    }}
                     className={cn(
                       'p-4 rounded-lg border-2 transition-all capitalize text-sm font-medium',
-                      resumeData.template === template
+                      selectedTemplate === template.id
                         ? 'border-primary bg-primary/5'
                         : 'border-border hover:border-primary/50'
                     )}
                   >
-                    {template}
+                    {template.name}
                   </button>
                 ))}
+              </div>
+              
+              {/* Color Selection */}
+              <div className="mt-4 pt-4 border-t border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium">Accent Color</span>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={isMonochrome}
+                      onCheckedChange={(checked) => setIsMonochrome(checked as boolean)}
+                    />
+                    Monochrome
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  {colorOptions.map((color) => (
+                    <button
+                      key={color.id}
+                      onClick={() => setSelectedColor(color.id)}
+                      className={cn(
+                        'w-8 h-8 rounded-full transition-all',
+                        selectedColor === color.id && 'ring-2 ring-offset-2 ring-primary'
+                      )}
+                      style={{ backgroundColor: isMonochrome ? '#475569' : color.primary }}
+                      title={color.name}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Personal Info */}
             <div className="bg-card border border-border rounded-xl overflow-hidden">
-              <SectionHeader icon={<User className="w-4 h-4" />} title="Personal Information" section="personal" />
-              {expandedSections.personal && (
-                <div className="p-4 space-y-4">
+              <SectionHeader icon={<User className="w-4 h-4" />} title="Personal Information" />
+              <div className="p-4 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label>Full Name</Label>
@@ -274,7 +333,6 @@ const Builder: React.FC = () => {
                     />
                   </div>
                 </div>
-              )}
             </div>
 
             {/* Education */}
@@ -282,11 +340,9 @@ const Builder: React.FC = () => {
               <SectionHeader 
                 icon={<GraduationCap className="w-4 h-4" />} 
                 title="Education" 
-                section="education"
                 onAdd={addEducation}
               />
-              {expandedSections.education && (
-                <div className="p-4 space-y-4">
+              <div className="p-4 space-y-4">
                   {resumeData.education.map((edu) => (
                     <div key={edu.id} className="p-4 bg-muted/30 rounded-lg space-y-4">
                       <div className="flex justify-between items-start">
@@ -352,12 +408,21 @@ const Builder: React.FC = () => {
                     </div>
                   ))}
                   {resumeData.education.length === 0 && (
-                    <p className="text-center text-muted-foreground py-4">
-                      No education added yet. Click + to add.
-                    </p>
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground mb-4">
+                        No education added yet.
+                      </p>
+                      <Button 
+                        onClick={addEducation}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Education
+                      </Button>
+                    </div>
                   )}
                 </div>
-              )}
             </div>
 
             {/* Experience */}
@@ -365,11 +430,9 @@ const Builder: React.FC = () => {
               <SectionHeader 
                 icon={<Briefcase className="w-4 h-4" />} 
                 title="Work Experience" 
-                section="experience"
                 onAdd={addExperience}
               />
-              {expandedSections.experience && (
-                <div className="p-4 space-y-4">
+              <div className="p-4 space-y-4">
                   {resumeData.experience.map((exp) => (
                     <div key={exp.id} className="p-4 bg-muted/30 rounded-lg space-y-4">
                       <div className="flex justify-between items-start">
@@ -450,12 +513,21 @@ const Builder: React.FC = () => {
                     </div>
                   ))}
                   {resumeData.experience.length === 0 && (
-                    <p className="text-center text-muted-foreground py-4">
-                      No experience added yet. Click + to add.
-                    </p>
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground mb-4">
+                        No experience added yet.
+                      </p>
+                      <Button 
+                        onClick={addExperience}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Experience
+                      </Button>
+                    </div>
                   )}
                 </div>
-              )}
             </div>
 
             {/* Projects */}
@@ -463,11 +535,9 @@ const Builder: React.FC = () => {
               <SectionHeader 
                 icon={<FolderOpen className="w-4 h-4" />} 
                 title="Projects" 
-                section="projects"
                 onAdd={addProject}
               />
-              {expandedSections.projects && (
-                <div className="p-4 space-y-4">
+              <div className="p-4 space-y-4">
                   {resumeData.projects.map((proj) => (
                     <div key={proj.id} className="p-4 bg-muted/30 rounded-lg space-y-4">
                       <div className="flex justify-between items-start">
@@ -518,12 +588,21 @@ const Builder: React.FC = () => {
                     </div>
                   ))}
                   {resumeData.projects.length === 0 && (
-                    <p className="text-center text-muted-foreground py-4">
-                      No projects added yet. Click + to add.
-                    </p>
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground mb-4">
+                        No projects added yet.
+                      </p>
+                      <Button 
+                        onClick={addProject}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Project
+                      </Button>
+                    </div>
                   )}
                 </div>
-              )}
             </div>
 
             {/* Achievements */}
@@ -531,11 +610,9 @@ const Builder: React.FC = () => {
               <SectionHeader 
                 icon={<Award className="w-4 h-4" />} 
                 title="Achievements" 
-                section="achievements"
                 onAdd={addAchievement}
               />
-              {expandedSections.achievements && (
-                <div className="p-4 space-y-4">
+              <div className="p-4 space-y-4">
                   {resumeData.achievements.map((ach) => (
                     <div key={ach.id} className="p-4 bg-muted/30 rounded-lg space-y-4">
                       <div className="flex justify-between items-start">
@@ -578,12 +655,21 @@ const Builder: React.FC = () => {
                     </div>
                   ))}
                   {resumeData.achievements.length === 0 && (
-                    <p className="text-center text-muted-foreground py-4">
-                      No achievements added yet. Click + to add.
-                    </p>
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground mb-4">
+                        No achievements added yet.
+                      </p>
+                      <Button 
+                        onClick={addAchievement}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Achievement
+                      </Button>
+                    </div>
                   )}
                 </div>
-              )}
             </div>
 
             {/* Skills */}
@@ -591,11 +677,9 @@ const Builder: React.FC = () => {
               <SectionHeader 
                 icon={<Wrench className="w-4 h-4" />} 
                 title="Skills" 
-                section="skills"
                 onAdd={addSkill}
               />
-              {expandedSections.skills && (
-                <div className="p-4 space-y-4">
+              <div className="p-4 space-y-4">
                   {resumeData.skills.map((skill) => (
                     <div key={skill.id} className="flex items-center gap-4">
                       <div className="flex-1">
@@ -625,11 +709,150 @@ const Builder: React.FC = () => {
                     </div>
                   ))}
                   {resumeData.skills.length === 0 && (
-                    <p className="text-center text-muted-foreground py-4">
-                      No skills added yet. Click + to add.
-                    </p>
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground mb-4">
+                        No skills added yet.
+                      </p>
+                      <Button 
+                        onClick={addSkill}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Skill
+                      </Button>
+                    </div>
                   )}
                 </div>
+            </div>
+
+            {/* Custom Sections */}
+            {resumeData.customSections.map((section) => (
+              <div key={section.id} className="bg-card border border-border rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="p-2 rounded-lg gradient-bg text-primary-foreground">
+                      <List className="w-4 h-4" />
+                    </div>
+                    <Input
+                      value={section.title}
+                      onChange={(e) => updateCustomSectionTitle(section.id, e.target.value)}
+                      className="font-semibold bg-transparent border-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 max-w-[200px]"
+                      placeholder="Section Title"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => addCustomSectionItem(section.id)}
+                      className="gap-1 gradient-bg"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => removeCustomSection(section.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="p-4 space-y-4">
+                  {section.items.map((item) => (
+                    <div key={item.id} className="flex items-start gap-4">
+                      <div className="flex-1">
+                        <Textarea
+                          placeholder="Enter content..."
+                          value={item.content}
+                          onChange={(e) => updateCustomSectionItem(section.id, item.id, e.target.value)}
+                          rows={2}
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive"
+                        onClick={() => removeCustomSectionItem(section.id, item.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  {section.items.length === 0 && (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground mb-4">
+                        No items added yet.
+                      </p>
+                      <Button 
+                        onClick={() => addCustomSectionItem(section.id)}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Item
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {/* Add New Custom Section */}
+            <div className="bg-card border border-dashed border-border rounded-xl p-4">
+              {showAddSection ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-muted">
+                      <PlusCircle className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <Input
+                      value={newSectionTitle}
+                      onChange={(e) => setNewSectionTitle(e.target.value)}
+                      placeholder="Enter section title (e.g., Languages, Certifications, Hobbies)"
+                      className="flex-1"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowAddSection(false);
+                        setNewSectionTitle('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="gradient-bg"
+                      onClick={() => {
+                        if (newSectionTitle.trim()) {
+                          addCustomSection(newSectionTitle.trim());
+                          setNewSectionTitle('');
+                          setShowAddSection(false);
+                        }
+                      }}
+                      disabled={!newSectionTitle.trim()}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Section
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  className="w-full h-auto py-4 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowAddSection(true)}
+                >
+                  <PlusCircle className="w-5 h-5" />
+                  <span>Add Custom Section</span>
+                </Button>
               )}
             </div>
           </div>
@@ -640,27 +863,25 @@ const Builder: React.FC = () => {
           <div className="max-w-[800px] mx-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Live Preview</h2>
-              <span className="text-sm text-muted-foreground capitalize">{resumeData.template} Template</span>
+              <span className="text-sm text-muted-foreground capitalize">
+                {templateOptions.find(t => t.id === selectedTemplate)?.name || 'Cosmos'} Template
+              </span>
             </div>
             
             {/* Resume Preview */}
             <div 
               ref={resumeRef}
-              className={cn(
-                'bg-white text-gray-900 shadow-2xl aspect-[8.5/11] p-8 font-resume',
-                resumeData.template === 'modern' && 'flex',
-                resumeData.template === 'creative' && 'bg-gradient-to-br from-white to-slate-50'
-              )}
+              className="bg-white text-gray-900 shadow-2xl aspect-[8.5/11] font-resume overflow-hidden"
             >
-              {resumeData.template === 'classic' && (
-                <ClassicTemplate data={resumeData} />
-              )}
-              {resumeData.template === 'modern' && (
-                <ModernTemplate data={resumeData} />
-              )}
-              {resumeData.template === 'creative' && (
-                <CreativeTemplate data={resumeData} />
-              )}
+              {selectedTemplate === 'cosmos' && <CosmosTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'celestial' && <CelestialTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'galaxy' && <GalaxyTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'aurora' && <AuroraTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'lunar' && <LunarTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'eclipse' && <EclipseTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'nebula' && <NebulaTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'stellar' && <StellarTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'orbit' && <OrbitTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
             </div>
           </div>
         </div>
@@ -669,279 +890,404 @@ const Builder: React.FC = () => {
   );
 };
 
-// Classic Template
-const ClassicTemplate: React.FC<{ data: any }> = ({ data }) => (
-  <div className="h-full text-sm">
-    {/* Header */}
-    <div className="text-center border-b-2 border-gray-800 pb-4 mb-4">
-      <h1 className="text-2xl font-bold uppercase tracking-wider">
+// Template Props Type
+interface TemplateProps {
+  data: any;
+  accentColor: { id: string; name: string; primary: string; secondary: string };
+  isMonochrome: boolean;
+}
+
+// Cosmos Template - Clean two-column with left sidebar (like Kelly)
+const CosmosTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#475569' : accentColor.primary;
+  const secondary = isMonochrome ? '#f1f5f9' : accentColor.secondary;
+  
+  return (
+  <div className="h-full flex text-[11px]">
+    {/* Left Sidebar */}
+    <div className="w-[35%] p-6" style={{ backgroundColor: secondary }}>
+      <h1 className="font-bold text-xl leading-tight" style={{ color: primary }}>
         {data.personalInfo.fullName || 'Your Name'}
       </h1>
-      <div className="flex items-center justify-center gap-4 text-xs mt-2 text-gray-600">
-        {data.personalInfo.email && <span>{data.personalInfo.email}</span>}
-        {data.personalInfo.phone && <span>|</span>}
-        {data.personalInfo.phone && <span>{data.personalInfo.phone}</span>}
-        {data.personalInfo.location && <span>|</span>}
-        {data.personalInfo.location && <span>{data.personalInfo.location}</span>}
-      </div>
-      {data.personalInfo.linkedin && (
-        <p className="text-xs text-blue-600 mt-1">{data.personalInfo.linkedin}</p>
-      )}
-    </div>
-
-    {/* Summary */}
-    {data.personalInfo.summary && (
-      <div className="mb-4">
-        <h2 className="text-sm font-bold uppercase border-b border-gray-300 mb-2">Summary</h2>
-        <p className="text-xs leading-relaxed text-gray-700">{data.personalInfo.summary}</p>
-      </div>
-    )}
-
-    {/* Experience */}
-    {data.experience.length > 0 && (
-      <div className="mb-4">
-        <h2 className="text-sm font-bold uppercase border-b border-gray-300 mb-2">Experience</h2>
-        {data.experience.map((exp: any) => (
-          <div key={exp.id} className="mb-3">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="font-semibold text-xs">{exp.position}</p>
-                <p className="text-xs text-gray-600">{exp.company}{exp.location && `, ${exp.location}`}</p>
-              </div>
-              <span className="text-xs text-gray-500">{exp.startDate} - {exp.endDate || 'Present'}</span>
-            </div>
-            {exp.description && <p className="text-xs text-gray-700 mt-1 leading-relaxed">{exp.description}</p>}
-          </div>
-        ))}
-      </div>
-    )}
-
-    {/* Education */}
-    {data.education.length > 0 && (
-      <div className="mb-4">
-        <h2 className="text-sm font-bold uppercase border-b border-gray-300 mb-2">Education</h2>
-        {data.education.map((edu: any) => (
-          <div key={edu.id} className="mb-2">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="font-semibold text-xs">{edu.degree} in {edu.field}</p>
-                <p className="text-xs text-gray-600">{edu.school}</p>
-              </div>
-              <span className="text-xs text-gray-500">{edu.startDate} - {edu.endDate}</span>
-            </div>
-            {edu.gpa && <p className="text-xs text-gray-500">GPA: {edu.gpa}</p>}
-          </div>
-        ))}
-      </div>
-    )}
-
-    {/* Skills */}
-    {data.skills.length > 0 && (
-      <div className="mb-4">
-        <h2 className="text-sm font-bold uppercase border-b border-gray-300 mb-2">Skills</h2>
-        <div className="flex flex-wrap gap-2">
-          {data.skills.map((skill: any) => (
-            <span key={skill.id} className="text-xs bg-gray-100 px-2 py-1 rounded">
-              {skill.name}
-            </span>
-          ))}
-        </div>
-      </div>
-    )}
-
-    {/* Projects */}
-    {data.projects.length > 0 && (
-      <div className="mb-4">
-        <h2 className="text-sm font-bold uppercase border-b border-gray-300 mb-2">Projects</h2>
-        {data.projects.map((proj: any) => (
-          <div key={proj.id} className="mb-2">
-            <p className="font-semibold text-xs">{proj.name}</p>
-            {proj.technologies && <p className="text-xs text-gray-500">{proj.technologies}</p>}
-            {proj.description && <p className="text-xs text-gray-700 mt-1">{proj.description}</p>}
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-);
-
-// Modern Template
-const ModernTemplate: React.FC<{ data: any }> = ({ data }) => (
-  <>
-    {/* Sidebar */}
-    <div className="w-1/3 bg-slate-800 text-white p-6 text-xs">
+      <p className="text-slate-600 text-sm mb-6">
+        {data.experience[0]?.position || 'Professional'}
+      </p>
+      
       <div className="mb-6">
-        <div className="w-16 h-16 rounded-full bg-blue-500 flex items-center justify-center text-xl font-bold mb-3">
-          {data.personalInfo.fullName?.split(' ').map((n: string) => n[0]).join('') || 'NA'}
-        </div>
-        <h1 className="text-lg font-bold">{data.personalInfo.fullName || 'Your Name'}</h1>
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-blue-400 font-semibold uppercase text-[10px] mb-2">Contact</h3>
-          {data.personalInfo.email && <p className="text-[10px]">{data.personalInfo.email}</p>}
-          {data.personalInfo.phone && <p className="text-[10px]">{data.personalInfo.phone}</p>}
-          {data.personalInfo.location && <p className="text-[10px]">{data.personalInfo.location}</p>}
-        </div>
-
-        {data.skills.length > 0 && (
-          <div>
-            <h3 className="text-blue-400 font-semibold uppercase text-[10px] mb-2">Skills</h3>
-            {data.skills.map((skill: any) => (
-              <div key={skill.id} className="mb-2">
-                <p className="text-[10px] mb-1">{skill.name}</p>
-                <div className="w-full bg-slate-600 rounded-full h-1">
-                  <div 
-                    className="bg-blue-400 h-1 rounded-full" 
-                    style={{ width: `${skill.proficiency}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-
-    {/* Main Content */}
-    <div className="flex-1 p-6 text-xs">
-      {data.personalInfo.summary && (
-        <div className="mb-4">
-          <h2 className="text-sm font-bold text-slate-800 border-b-2 border-blue-500 pb-1 mb-2">Profile</h2>
-          <p className="text-gray-600 leading-relaxed text-[10px]">{data.personalInfo.summary}</p>
-        </div>
-      )}
-
-      {data.experience.length > 0 && (
-        <div className="mb-4">
-          <h2 className="text-sm font-bold text-slate-800 border-b-2 border-blue-500 pb-1 mb-2">Experience</h2>
-          {data.experience.map((exp: any) => (
-            <div key={exp.id} className="mb-3">
-              <div className="flex justify-between">
-                <p className="font-semibold text-[10px]">{exp.position}</p>
-                <span className="text-[10px] text-gray-500">{exp.startDate} - {exp.endDate || 'Present'}</span>
-              </div>
-              <p className="text-[10px] text-blue-600">{exp.company}</p>
-              {exp.description && <p className="text-[10px] text-gray-600 mt-1">{exp.description}</p>}
+        <h4 className="font-bold text-sm border-b pb-2 mb-3" style={{ color: primary, borderColor: primary }}>DETAILS</h4>
+        <div className="space-y-2 text-slate-600">
+          {data.personalInfo.email && (
+            <div className="flex items-start gap-2">
+              <Mail className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: primary }} />
+              <span className="break-all">{data.personalInfo.email}</span>
             </div>
-          ))}
-        </div>
-      )}
-
-      {data.education.length > 0 && (
-        <div className="mb-4">
-          <h2 className="text-sm font-bold text-slate-800 border-b-2 border-blue-500 pb-1 mb-2">Education</h2>
-          {data.education.map((edu: any) => (
-            <div key={edu.id} className="mb-2">
-              <p className="font-semibold text-[10px]">{edu.degree} in {edu.field}</p>
-              <p className="text-[10px] text-blue-600">{edu.school}</p>
-              <p className="text-[10px] text-gray-500">{edu.startDate} - {edu.endDate}</p>
+          )}
+          {data.personalInfo.phone && (
+            <div className="flex items-start gap-2">
+              <Phone className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: primary }} />
+              <span>{data.personalInfo.phone}</span>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
-  </>
-);
-
-// Creative Template
-const CreativeTemplate: React.FC<{ data: any }> = ({ data }) => (
-  <div className="h-full text-sm">
-    {/* Header with accent */}
-    <div className="mb-6">
-      <div className="flex items-center gap-4">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-2xl font-bold text-white">
-          {data.personalInfo.fullName?.split(' ').map((n: string) => n[0]).join('') || 'NA'}
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            {data.personalInfo.fullName || 'Your Name'}
-          </h1>
-          <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-            {data.personalInfo.email && <span>{data.personalInfo.email}</span>}
-            {data.personalInfo.phone && <span>•</span>}
-            {data.personalInfo.phone && <span>{data.personalInfo.phone}</span>}
-          </div>
+          )}
           {data.personalInfo.location && (
-            <p className="text-xs text-gray-500">{data.personalInfo.location}</p>
+            <div className="flex items-start gap-2">
+              <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
+              <span>{data.personalInfo.location}</span>
+            </div>
+          )}
+          {data.personalInfo.linkedin && (
+            <div className="flex items-start gap-2">
+              <Linkedin className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
+              <span className="break-all">{data.personalInfo.linkedin}</span>
+            </div>
           )}
         </div>
       </div>
+      
+      {data.skills.length > 0 && (
+        <div>
+          <h4 className="font-bold text-sm text-slate-700 border-b border-slate-300 pb-2 mb-3">SKILLS</h4>
+          <ul className="space-y-1 text-slate-600">
+            {data.skills.map((skill: any) => (
+              <li key={skill.id}>• {skill.name}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
+    
+    {/* Main Content */}
+    <div className="flex-1 p-6">
+      {data.personalInfo.summary && (
+        <div className="mb-5">
+          <h4 className="font-bold text-sm text-slate-800 border-b border-slate-300 pb-2 mb-2">SUMMARY</h4>
+          <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+        </div>
+      )}
+      
+      {data.experience.length > 0 && (
+        <div className="mb-5">
+          <h4 className="font-bold text-sm text-slate-800 border-b border-slate-300 pb-2 mb-2">EXPERIENCE</h4>
+          {data.experience.map((exp: any) => (
+            <div key={exp.id} className="mb-4">
+              <div className="flex justify-between items-start">
+                <p className="font-semibold">{exp.position}</p>
+                <p className="text-slate-500 text-[10px]">{exp.startDate} — {exp.endDate || 'Present'}</p>
+              </div>
+              <p className="text-blue-600">{exp.company}{exp.location && `, ${exp.location}`}</p>
+              {exp.description && (
+                <ul className="text-slate-600 mt-1 space-y-0.5">
+                  {exp.description.split('\n').map((line: string, i: number) => (
+                    <li key={i}>• {line}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {data.education.length > 0 && (
+        <div className="mb-5">
+          <h4 className="font-bold text-sm text-slate-800 border-b border-slate-300 pb-2 mb-2">EDUCATION</h4>
+          {data.education.map((edu: any) => (
+            <div key={edu.id} className="mb-2">
+              <p className="font-semibold">{edu.degree}{edu.field && ` in ${edu.field}`}</p>
+              <p className="text-slate-500">{edu.school} • {edu.startDate} — {edu.endDate}</p>
+              {edu.gpa && <p className="text-slate-500">GPA: {edu.gpa}</p>}
+            </div>
+          ))}
+        </div>
+      )}
 
-    {/* Summary */}
+      {data.projects.length > 0 && (
+        <div>
+          <h4 className="font-bold text-sm text-slate-800 border-b border-slate-300 pb-2 mb-2">PROJECTS</h4>
+          {data.projects.map((proj: any) => (
+            <div key={proj.id} className="mb-2">
+              <p className="font-semibold">{proj.name}</p>
+              {proj.technologies && <p className="text-slate-500 text-[10px]">{proj.technologies}</p>}
+              {proj.description && <p className="text-slate-600 mt-1">{proj.description}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {data.customSections?.map((section: any) => (
+        section.items.length > 0 && (
+          <div key={section.id} className="mb-5">
+            <h4 className="font-bold text-sm border-b pb-2 mb-2" style={{ color: primary, borderColor: primary }}>{section.title.toUpperCase()}</h4>
+            <ul className="text-slate-600 space-y-1">
+              {section.items.map((item: any) => (
+                <li key={item.id}>• {item.content}</li>
+              ))}
+            </ul>
+          </div>
+        )
+      ))}
+    </div>
+  </div>
+  );
+};
+
+// Celestial Template - Centered single-column (like Howard)
+const CelestialTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#475569' : accentColor.primary;
+  
+  return (
+  <div className="h-full text-[11px] p-8">
+    {/* Header */}
+    <div className="text-center pb-4 mb-6" style={{ borderBottom: `2px solid ${primary}` }}>
+      <h1 className="font-bold text-2xl tracking-wide uppercase" style={{ color: primary }}>
+        {data.personalInfo.fullName || 'Your Name'}
+      </h1>
+      <p className="text-slate-600 text-sm mt-1">{data.experience[0]?.position || 'Professional'}</p>
+      <p className="text-slate-500 mt-2">
+        {[data.personalInfo.location, data.personalInfo.email, data.personalInfo.phone]
+          .filter(Boolean).join(' | ')}
+      </p>
+    </div>
+    
     {data.personalInfo.summary && (
-      <div className="mb-4 p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg">
-        <p className="text-xs text-gray-700 leading-relaxed">{data.personalInfo.summary}</p>
+      <div className="mb-5">
+        <h4 className="font-bold text-sm text-slate-700 text-center border-b border-slate-200 pb-2 mb-2">SUMMARY</h4>
+        <p className="text-slate-600 leading-relaxed text-center">{data.personalInfo.summary}</p>
       </div>
     )}
+    
+    {data.experience.length > 0 && (
+      <div className="mb-5">
+        <h4 className="font-bold text-sm text-slate-700 text-center border-b border-slate-200 pb-2 mb-3">EXPERIENCE</h4>
+        {data.experience.map((exp: any) => (
+          <div key={exp.id} className="mb-4">
+            <div className="flex justify-between">
+              <p className="font-semibold">{exp.position}, {exp.company}</p>
+              <p className="text-slate-500">{exp.startDate} — {exp.endDate || 'Present'}</p>
+            </div>
+            {exp.description && (
+              <ul className="text-slate-600 mt-1 space-y-0.5">
+                {exp.description.split('\n').map((line: string, i: number) => (
+                  <li key={i}>• {line}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+    )}
+    
+    <div className="grid grid-cols-2 gap-6">
+      {data.education.length > 0 && (
+        <div>
+          <h4 className="font-bold text-sm text-slate-700 border-b border-slate-200 pb-2 mb-2">EDUCATION</h4>
+          {data.education.map((edu: any) => (
+            <div key={edu.id} className="mb-2">
+              <p className="font-semibold">{edu.school}</p>
+              <p className="text-slate-500">{edu.degree}{edu.field && ` in ${edu.field}`}</p>
+              <p className="text-slate-500 text-[10px]">{edu.startDate} — {edu.endDate}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {data.skills.length > 0 && (
+        <div>
+          <h4 className="font-bold text-sm text-slate-700 border-b border-slate-200 pb-2 mb-2">SKILLS</h4>
+          <p className="text-slate-600">{data.skills.map((s: any) => s.name).join(' • ')}</p>
+        </div>
+      )}
+    </div>
 
-    <div className="grid grid-cols-3 gap-4">
-      <div className="col-span-2 space-y-4">
-        {/* Experience */}
-        {data.experience.length > 0 && (
-          <div>
-            <h2 className="text-sm font-bold text-purple-600 mb-2 flex items-center gap-2">
-              <span className="w-6 h-0.5 bg-purple-600"></span>
-              Experience
-            </h2>
-            {data.experience.map((exp: any) => (
-              <div key={exp.id} className="mb-3 pl-4 border-l-2 border-purple-200">
-                <p className="font-semibold text-xs">{exp.position}</p>
-                <p className="text-xs text-purple-600">{exp.company}</p>
-                <p className="text-[10px] text-gray-400">{exp.startDate} - {exp.endDate || 'Present'}</p>
-                {exp.description && <p className="text-[10px] text-gray-600 mt-1">{exp.description}</p>}
-              </div>
+    {data.customSections?.map((section: any) => (
+      section.items.length > 0 && (
+        <div key={section.id} className="mt-5">
+          <h4 className="font-bold text-sm text-center border-b pb-2 mb-2" style={{ color: primary, borderColor: primary }}>{section.title.toUpperCase()}</h4>
+          <ul className="text-slate-600 space-y-1">
+            {section.items.map((item: any) => (
+              <li key={item.id}>• {item.content}</li>
             ))}
+          </ul>
+        </div>
+      )
+    ))}
+  </div>
+  );
+};
+
+// Galaxy Template - Modern with photo sidebar (like Samantha)
+const GalaxyTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#475569' : accentColor.primary;
+  
+  return (
+  <div className="h-full flex text-[11px]">
+    {/* Colored Sidebar */}
+    <div className="w-[32%] text-white p-5" style={{ background: `linear-gradient(to bottom, ${primary}, ${primary}dd)` }}>
+      <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center border-3 border-white" style={{ backgroundColor: `${primary}66` }}>
+        <span className="text-white font-bold text-lg">
+          {data.personalInfo.fullName?.split(' ').map((n: string) => n[0]).join('') || 'NA'}
+        </span>
+      </div>
+      <h3 className="text-center font-bold text-lg mb-0.5">{data.personalInfo.fullName || 'Your Name'}</h3>
+      <p className="text-center opacity-80 text-sm mb-4">{data.experience[0]?.position || 'Professional'}</p>
+      
+      <div className="space-y-2 mb-5">
+        {data.personalInfo.location && (
+          <div className="flex items-center gap-2">
+            <MapPin className="w-3 h-3" />
+            <span>{data.personalInfo.location}</span>
           </div>
         )}
-
-        {/* Projects */}
-        {data.projects.length > 0 && (
-          <div>
-            <h2 className="text-sm font-bold text-purple-600 mb-2 flex items-center gap-2">
-              <span className="w-6 h-0.5 bg-purple-600"></span>
-              Projects
-            </h2>
-            {data.projects.map((proj: any) => (
-              <div key={proj.id} className="mb-2 pl-4 border-l-2 border-purple-200">
-                <p className="font-semibold text-xs">{proj.name}</p>
-                {proj.technologies && (
-                  <p className="text-[10px] text-purple-500">{proj.technologies}</p>
-                )}
-                {proj.description && <p className="text-[10px] text-gray-600">{proj.description}</p>}
-              </div>
-            ))}
+        {data.personalInfo.email && (
+          <div className="flex items-center gap-2">
+            <Mail className="w-3 h-3" />
+            <span className="truncate">{data.personalInfo.email}</span>
+          </div>
+        )}
+        {data.personalInfo.phone && (
+          <div className="flex items-center gap-2">
+            <Phone className="w-3 h-3" />
+            <span>{data.personalInfo.phone}</span>
           </div>
         )}
       </div>
+      
+      {data.skills.length > 0 && (
+        <div>
+          <h4 className="font-bold text-sm border-b border-blue-400 pb-2 mb-3">SKILLS</h4>
+          <ul className="space-y-1">
+            {data.skills.map((skill: any) => (
+              <li key={skill.id} className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-300"></div>
+                {skill.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+    
+    {/* Main Content */}
+    <div className="flex-1 p-5">
+      {data.personalInfo.summary && (
+        <div className="mb-5">
+          <h4 className="font-bold text-sm text-slate-800 border-b border-slate-300 pb-2 mb-2">SUMMARY</h4>
+          <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+        </div>
+      )}
+      
+      {data.experience.length > 0 && (
+        <div className="mb-5">
+          <h4 className="font-bold text-sm text-slate-800 border-b border-slate-300 pb-2 mb-2">EXPERIENCE</h4>
+          {data.experience.map((exp: any) => (
+            <div key={exp.id} className="mb-4">
+              <div className="flex justify-between items-start">
+                <p className="font-semibold">{exp.position}</p>
+                <p className="text-slate-500 text-[10px]">{exp.startDate} — {exp.endDate || 'Present'}</p>
+              </div>
+              <p className="text-blue-600">{exp.company}{exp.location && ` - ${exp.location}`}</p>
+              {exp.description && (
+                <ul className="text-slate-600 mt-1 space-y-0.5">
+                  {exp.description.split('\n').map((line: string, i: number) => (
+                    <li key={i}>• {line}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {data.education.length > 0 && (
+        <div>
+          <h4 className="font-bold text-sm text-slate-800 border-b border-slate-300 pb-2 mb-2">EDUCATION</h4>
+          {data.education.map((edu: any) => (
+            <div key={edu.id} className="mb-2">
+              <p className="font-semibold">{edu.school}</p>
+              <p className="text-slate-500">{edu.degree}{edu.field && ` in ${edu.field}`} • {edu.startDate} — {edu.endDate}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
-      <div className="space-y-4">
-        {/* Education */}
+      {data.customSections?.map((section: any) => (
+        section.items.length > 0 && (
+          <div key={section.id} className="mt-5">
+            <h4 className="font-bold text-sm text-slate-800 border-b border-slate-300 pb-2 mb-2">{section.title.toUpperCase()}</h4>
+            <ul className="text-slate-600 space-y-1">
+              {section.items.map((item: any) => (
+                <li key={item.id}>• {item.content}</li>
+              ))}
+            </ul>
+          </div>
+        )
+      ))}
+    </div>
+  </div>
+  );
+};
+
+// Aurora Template - Modern gradient header (like Jessie)
+const AuroraTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#475569' : accentColor.primary;
+  
+  return (
+  <div className="h-full text-[11px]">
+    {/* Gradient Header */}
+    <div className="text-white p-6" style={{ background: `linear-gradient(to right, ${primary}, ${primary}cc)` }}>
+      <h1 className="font-bold text-xl">{data.personalInfo.fullName || 'Your Name'}</h1>
+      <p className="opacity-80 text-sm">{data.experience[0]?.position || 'Professional'}</p>
+      <p className="opacity-80 mt-2">
+        {[data.personalInfo.location, data.personalInfo.email, data.personalInfo.phone]
+          .filter(Boolean).join(' | ')}
+      </p>
+    </div>
+    
+    <div className="p-6">
+      {data.personalInfo.summary && (
+        <div className="mb-5">
+          <h4 className="font-bold text-sm pb-2 mb-2" style={{ color: primary, borderBottom: `1px solid ${primary}33` }}>SUMMARY</h4>
+          <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+        </div>
+      )}
+      
+      {data.experience.length > 0 && (
+        <div className="mb-5">
+          <h4 className="font-bold text-sm pb-2 mb-2" style={{ color: primary, borderBottom: `1px solid ${primary}33` }}>EXPERIENCE</h4>
+          {data.experience.map((exp: any) => (
+            <div key={exp.id} className="mb-4">
+              <div className="flex justify-between">
+                <p className="font-semibold">{exp.position}</p>
+                <p className="text-slate-500">{exp.startDate} — {exp.endDate || 'Present'}</p>
+              </div>
+              <p className="text-violet-600">{exp.company}{exp.location && `, ${exp.location}`}</p>
+              {exp.description && (
+                <ul className="text-slate-600 mt-1 space-y-0.5">
+                  {exp.description.split('\n').map((line: string, i: number) => (
+                    <li key={i}>• {line}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      
+      <div className="grid grid-cols-2 gap-6">
         {data.education.length > 0 && (
           <div>
-            <h2 className="text-sm font-bold text-purple-600 mb-2">Education</h2>
+            <h4 className="font-bold text-sm text-violet-600 border-b border-violet-200 pb-2 mb-2">EDUCATION</h4>
             {data.education.map((edu: any) => (
               <div key={edu.id} className="mb-2">
-                <p className="font-semibold text-[10px]">{edu.degree}</p>
-                <p className="text-[10px] text-gray-600">{edu.school}</p>
-                <p className="text-[10px] text-gray-400">{edu.endDate}</p>
+                <p className="font-semibold">{edu.degree}{edu.field && `, ${edu.field}`}</p>
+                <p className="text-slate-500">{edu.school} • {edu.startDate} — {edu.endDate}</p>
               </div>
             ))}
           </div>
         )}
-
-        {/* Skills */}
         {data.skills.length > 0 && (
           <div>
-            <h2 className="text-sm font-bold text-purple-600 mb-2">Skills</h2>
+            <h4 className="font-bold text-sm text-violet-600 border-b border-violet-200 pb-2 mb-2">SKILLS</h4>
             <div className="flex flex-wrap gap-1">
               {data.skills.map((skill: any) => (
-                <span 
-                  key={skill.id} 
-                  className="text-[10px] bg-gradient-to-r from-purple-100 to-blue-100 px-2 py-0.5 rounded-full"
-                >
+                <span key={skill.id} className="bg-violet-50 text-violet-600 px-2 py-1 rounded text-[10px]">
                   {skill.name}
                 </span>
               ))}
@@ -949,8 +1295,567 @@ const CreativeTemplate: React.FC<{ data: any }> = ({ data }) => (
           </div>
         )}
       </div>
+
+      {data.customSections?.map((section: any) => (
+        section.items.length > 0 && (
+          <div key={section.id} className="mt-5">
+            <h4 className="font-bold text-sm text-violet-600 border-b border-violet-200 pb-2 mb-2">{section.title.toUpperCase()}</h4>
+            <ul className="text-slate-600 space-y-1">
+              {section.items.map((item: any) => (
+                <li key={item.id}>• {item.content}</li>
+              ))}
+            </ul>
+          </div>
+        )
+      ))}
     </div>
   </div>
-);
+  );
+};
+
+// Lunar Template - Two-column with right sidebar (like Wes)
+const LunarTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#475569' : accentColor.primary;
+  const secondary = isMonochrome ? '#f1f5f9' : accentColor.secondary;
+  
+  return (
+  <div className="h-full flex text-[11px]">
+    {/* Main Content */}
+    <div className="flex-1 p-6">
+      <h1 className="font-bold text-xl text-slate-900 uppercase">{data.personalInfo.fullName || 'Your Name'}</h1>
+      <p className="text-sm font-medium mb-4" style={{ color: primary }}>{data.experience[0]?.position?.toUpperCase() || 'PROFESSIONAL'}</p>
+      
+      {data.personalInfo.summary && (
+        <div className="mb-5">
+          <h4 className="font-bold text-sm text-slate-800 px-2 py-1 mb-2" style={{ backgroundColor: secondary }}>SUMMARY</h4>
+          <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+        </div>
+      )}
+      
+      {data.experience.length > 0 && (
+        <div className="mb-5">
+          <h4 className="font-bold text-sm text-slate-800 px-2 py-1 mb-2" style={{ backgroundColor: secondary }}>EXPERIENCE</h4>
+          {data.experience.map((exp: any) => (
+            <div key={exp.id} className="mb-4">
+              <p className="font-semibold">{exp.position}, {exp.company}</p>
+              <p className="text-slate-500">{exp.location} • {exp.startDate} — {exp.endDate || 'Present'}</p>
+              {exp.description && (
+                <ul className="text-slate-600 mt-1 space-y-0.5">
+                  {exp.description.split('\n').map((line: string, i: number) => (
+                    <li key={i}>• {line}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {data.education.length > 0 && (
+        <div>
+          <h4 className="font-bold text-sm text-slate-800 px-2 py-1 mb-2" style={{ backgroundColor: secondary }}>EDUCATION</h4>
+          {data.education.map((edu: any) => (
+            <div key={edu.id} className="mb-2">
+              <p className="font-semibold">{edu.school}</p>
+              <p className="text-slate-500">{edu.degree}{edu.field && ` in ${edu.field}`} • {edu.startDate} — {edu.endDate}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {data.customSections?.map((section: any) => (
+        section.items.length > 0 && (
+          <div key={section.id} className="mt-5">
+            <h4 className="font-bold text-sm text-slate-800 px-2 py-1 mb-2" style={{ backgroundColor: secondary }}>{section.title.toUpperCase()}</h4>
+            <ul className="text-slate-600 space-y-1">
+              {section.items.map((item: any) => (
+                <li key={item.id}>• {item.content}</li>
+              ))}
+            </ul>
+          </div>
+        )
+      ))}
+    </div>
+    
+    {/* Right Sidebar */}
+    <div className="w-[28%] bg-amber-50 p-4">
+      <h4 className="font-bold text-sm text-amber-800 mb-3">DETAILS</h4>
+      <div className="space-y-2 text-slate-600 mb-5">
+        {data.personalInfo.location && <p>{data.personalInfo.location}</p>}
+        {data.personalInfo.phone && <p>{data.personalInfo.phone}</p>}
+        {data.personalInfo.email && <p className="break-all">{data.personalInfo.email}</p>}
+      </div>
+      
+      {data.skills.length > 0 && (
+        <>
+          <h4 className="font-bold text-sm text-amber-800 mb-3">SKILLS</h4>
+          <ul className="space-y-1 text-slate-600">
+            {data.skills.map((skill: any) => (
+              <li key={skill.id}>{skill.name}</li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  </div>
+  );
+};
+
+// Eclipse Template - Entry-level with photo (like Sebastian)
+const EclipseTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#475569' : accentColor.primary;
+  
+  return (
+  <div className="h-full flex text-[11px]">
+    {/* Colored Sidebar */}
+    <div className="w-[30%] text-white p-5" style={{ background: `linear-gradient(to bottom, ${primary}, ${primary}dd)` }}>
+      <div className="w-16 h-16 rounded-full bg-white/20 mx-auto mb-4 flex items-center justify-center border-2 border-white">
+        <span className="text-sm font-bold">
+          {data.personalInfo.fullName?.split(' ').map((n: string) => n[0]).join('') || 'NA'}
+        </span>
+      </div>
+      
+      <h4 className="font-bold text-sm mt-4 mb-3">DETAILS</h4>
+      <div className="space-y-2">
+        {data.personalInfo.location && <p>{data.personalInfo.location}</p>}
+        {data.personalInfo.phone && <p>{data.personalInfo.phone}</p>}
+        {data.personalInfo.email && <p className="break-all">{data.personalInfo.email}</p>}
+      </div>
+      
+      {data.skills.length > 0 && (
+        <>
+          <h4 className="font-bold text-sm mt-5 mb-3">SKILLS</h4>
+          <ul className="space-y-1">
+            {data.skills.map((skill: any) => (
+              <li key={skill.id} className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                {skill.name}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+    
+    {/* Main Content */}
+    <div className="flex-1 p-6">
+      <h1 className="font-bold text-xl text-slate-900">{data.personalInfo.fullName || 'Your Name'}</h1>
+      <p className="text-sm font-medium mb-4" style={{ color: primary }}>{data.experience[0]?.position || 'Professional'}</p>
+      
+      {data.personalInfo.summary && (
+        <div className="mb-5">
+          <h4 className="font-bold text-sm pb-2 mb-2" style={{ color: primary, borderBottom: `1px solid ${primary}33` }}>SUMMARY</h4>
+          <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+        </div>
+      )}
+      
+      {data.experience.length > 0 && (
+        <div className="mb-5">
+          <h4 className="font-bold text-sm text-cyan-600 border-b border-cyan-200 pb-2 mb-2">EXPERIENCE</h4>
+          {data.experience.map((exp: any) => (
+            <div key={exp.id} className="mb-3">
+              <p className="font-semibold">{exp.position}</p>
+              <p className="text-slate-500">{exp.company} • {exp.startDate} — {exp.endDate || 'Present'}</p>
+              {exp.description && <p className="text-slate-600 mt-1">{exp.description}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {data.education.length > 0 && (
+        <div>
+          <h4 className="font-bold text-sm text-cyan-600 border-b border-cyan-200 pb-2 mb-2">EDUCATION</h4>
+          {data.education.map((edu: any) => (
+            <div key={edu.id} className="mb-2">
+              <p className="font-semibold">{edu.degree}{edu.field && `, ${edu.field}`}</p>
+              <p className="text-slate-500">{edu.school} • {edu.startDate} — {edu.endDate}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {data.customSections?.map((section: any) => (
+        section.items.length > 0 && (
+          <div key={section.id} className="mt-5">
+            <h4 className="font-bold text-sm mb-2" style={{ color: primary }}>{section.title.toUpperCase()}</h4>
+            <ul className="text-slate-600 space-y-1">
+              {section.items.map((item: any) => (
+                <li key={item.id}>• {item.content}</li>
+              ))}
+            </ul>
+          </div>
+        )
+      ))}
+    </div>
+  </div>
+  );
+};
+
+// Nebula Template - Modern clean with accent line
+const NebulaTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#475569' : accentColor.primary;
+  
+  return (
+  <div className="h-full text-[11px] p-6">
+    {/* Header with accent */}
+    <div className="pl-4 mb-6" style={{ borderLeft: `4px solid ${primary}` }}>
+      <h1 className="font-bold text-2xl text-slate-800">{data.personalInfo.fullName || 'Your Name'}</h1>
+      <p className="font-medium" style={{ color: primary }}>{data.experience[0]?.position || 'Professional Title'}</p>
+      <div className="flex flex-wrap gap-4 mt-2 text-slate-500 text-[10px]">
+        {data.personalInfo.email && <span>✉ {data.personalInfo.email}</span>}
+        {data.personalInfo.phone && <span>☎ {data.personalInfo.phone}</span>}
+        {data.personalInfo.location && <span>📍 {data.personalInfo.location}</span>}
+      </div>
+    </div>
+
+    {data.personalInfo.summary && (
+      <div className="mb-5">
+        <p className="text-slate-600 leading-relaxed italic border-l-2 border-indigo-200 pl-3">
+          {data.personalInfo.summary}
+        </p>
+      </div>
+    )}
+
+    <div className="grid grid-cols-3 gap-6">
+      <div className="col-span-2 space-y-5">
+        {data.experience.length > 0 && (
+          <div>
+            <h4 className="font-bold text-sm text-indigo-600 mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 bg-indigo-500 rounded-full"></span>
+              EXPERIENCE
+            </h4>
+            {data.experience.map((exp: any) => (
+              <div key={exp.id} className="mb-4 relative pl-4 before:content-[''] before:absolute before:left-0 before:top-2 before:w-1.5 before:h-1.5 before:bg-indigo-300 before:rounded-full">
+                <div className="flex justify-between">
+                  <p className="font-semibold">{exp.position}</p>
+                  <p className="text-slate-400 text-[10px]">{exp.startDate} — {exp.endDate || 'Present'}</p>
+                </div>
+                <p className="text-indigo-500">{exp.company}</p>
+                {exp.description && <p className="text-slate-600 mt-1">{exp.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {data.projects.length > 0 && (
+          <div>
+            <h4 className="font-bold text-sm text-indigo-600 mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 bg-indigo-500 rounded-full"></span>
+              PROJECTS
+            </h4>
+            {data.projects.map((proj: any) => (
+              <div key={proj.id} className="mb-3 pl-4">
+                <p className="font-semibold">{proj.name}</p>
+                {proj.technologies && <p className="text-indigo-400 text-[10px]">{proj.technologies}</p>}
+                {proj.description && <p className="text-slate-600">{proj.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-5">
+        {data.education.length > 0 && (
+          <div>
+            <h4 className="font-bold text-sm text-indigo-600 mb-3">EDUCATION</h4>
+            {data.education.map((edu: any) => (
+              <div key={edu.id} className="mb-2">
+                <p className="font-semibold text-[10px]">{edu.degree}</p>
+                <p className="text-slate-500 text-[10px]">{edu.school}</p>
+                <p className="text-slate-400 text-[9px]">{edu.endDate}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {data.skills.length > 0 && (
+          <div>
+            <h4 className="font-bold text-sm text-indigo-600 mb-3">SKILLS</h4>
+            <div className="space-y-2">
+              {data.skills.map((skill: any) => (
+                <div key={skill.id}>
+                  <div className="flex justify-between text-[10px] mb-1">
+                    <span>{skill.name}</span>
+                    <span className="text-slate-400">{skill.proficiency}%</span>
+                  </div>
+                  <div className="h-1.5 bg-slate-200 rounded-full">
+                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${skill.proficiency}%` }}></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {data.achievements.length > 0 && (
+          <div>
+            <h4 className="font-bold text-sm text-indigo-600 mb-3">ACHIEVEMENTS</h4>
+            {data.achievements.map((ach: any) => (
+              <div key={ach.id} className="mb-2">
+                <p className="font-semibold text-[10px]">{ach.title}</p>
+                <p className="text-slate-500 text-[9px]">{ach.date}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {data.customSections?.map((section: any) => (
+          section.items.length > 0 && (
+            <div key={section.id}>
+              <h4 className="font-bold text-sm mb-3" style={{ color: primary }}>{section.title.toUpperCase()}</h4>
+              <ul className="text-slate-600 space-y-1 text-[10px]">
+                {section.items.map((item: any) => (
+                  <li key={item.id}>• {item.content}</li>
+                ))}
+              </ul>
+            </div>
+          )
+        ))}
+      </div>
+    </div>
+  </div>
+  );
+};
+
+// Stellar Template - Minimal elegant
+const StellarTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#475569' : accentColor.primary;
+  
+  return (
+  <div className="h-full text-[11px] p-8 bg-white">
+    {/* Minimal Header */}
+    <div className="text-center mb-8">
+      <h1 className="font-light text-3xl text-slate-800 tracking-wide">{data.personalInfo.fullName || 'Your Name'}</h1>
+      <div className="w-16 h-0.5 mx-auto my-3" style={{ backgroundColor: primary }}></div>
+      <p className="text-slate-500 text-sm">{data.experience[0]?.position || 'Professional'}</p>
+      <div className="flex justify-center gap-6 mt-3 text-slate-400 text-[10px]">
+        {data.personalInfo.email && <span>{data.personalInfo.email}</span>}
+        {data.personalInfo.phone && <span>{data.personalInfo.phone}</span>}
+        {data.personalInfo.location && <span>{data.personalInfo.location}</span>}
+      </div>
+    </div>
+
+    {data.personalInfo.summary && (
+      <div className="mb-6 text-center max-w-lg mx-auto">
+        <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+      </div>
+    )}
+
+    <div className="grid grid-cols-2 gap-8">
+      <div className="space-y-6">
+        {data.experience.length > 0 && (
+          <div>
+            <h4 className="font-semibold text-xs uppercase tracking-widest text-slate-400 mb-4">Experience</h4>
+            {data.experience.map((exp: any) => (
+              <div key={exp.id} className="mb-4">
+                <p className="font-medium">{exp.position}</p>
+                <p className="text-slate-500">{exp.company} · {exp.startDate} — {exp.endDate || 'Present'}</p>
+                {exp.description && <p className="text-slate-600 mt-1 text-[10px]">{exp.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {data.projects.length > 0 && (
+          <div>
+            <h4 className="font-semibold text-xs uppercase tracking-widest text-slate-400 mb-4">Projects</h4>
+            {data.projects.map((proj: any) => (
+              <div key={proj.id} className="mb-3">
+                <p className="font-medium">{proj.name}</p>
+                {proj.technologies && <p className="text-slate-400 text-[10px]">{proj.technologies}</p>}
+                {proj.description && <p className="text-slate-600 text-[10px]">{proj.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-6">
+        {data.education.length > 0 && (
+          <div>
+            <h4 className="font-semibold text-xs uppercase tracking-widest text-slate-400 mb-4">Education</h4>
+            {data.education.map((edu: any) => (
+              <div key={edu.id} className="mb-3">
+                <p className="font-medium">{edu.degree}{edu.field && ` in ${edu.field}`}</p>
+                <p className="text-slate-500">{edu.school}</p>
+                <p className="text-slate-400 text-[10px]">{edu.startDate} — {edu.endDate}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {data.skills.length > 0 && (
+          <div>
+            <h4 className="font-semibold text-xs uppercase tracking-widest text-slate-400 mb-4">Skills</h4>
+            <div className="flex flex-wrap gap-2">
+              {data.skills.map((skill: any) => (
+                <span key={skill.id} className="border border-slate-200 px-3 py-1 rounded-full text-[10px]">
+                  {skill.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {data.achievements.length > 0 && (
+          <div>
+            <h4 className="font-semibold text-xs uppercase tracking-widest text-slate-400 mb-4">Achievements</h4>
+            {data.achievements.map((ach: any) => (
+              <div key={ach.id} className="mb-2">
+                <p className="font-medium text-[10px]">{ach.title}</p>
+                {ach.description && <p className="text-slate-500 text-[9px]">{ach.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {data.customSections?.map((section: any) => (
+          section.items.length > 0 && (
+            <div key={section.id}>
+              <h4 className="font-semibold text-xs uppercase tracking-widest text-slate-400 mb-4">{section.title}</h4>
+              <ul className="text-slate-600 space-y-1 text-[10px]">
+                {section.items.map((item: any) => (
+                  <li key={item.id}>• {item.content}</li>
+                ))}
+              </ul>
+            </div>
+          )
+        ))}
+      </div>
+    </div>
+  </div>
+  );
+};
+
+// Orbit Template - Creative with timeline
+const OrbitTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#475569' : accentColor.primary;
+  const secondary = isMonochrome ? '#f1f5f9' : accentColor.secondary;
+  
+  return (
+  <div className="h-full text-[11px]" style={{ background: `linear-gradient(to bottom right, ${secondary}, white)` }}>
+    {/* Creative Header */}
+    <div className="text-white p-6" style={{ background: `linear-gradient(to right, ${primary}, ${primary}cc)` }}>
+      <div className="flex items-center gap-4">
+        <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-xl font-bold border-2 border-white/50">
+          {data.personalInfo.fullName?.split(' ').map((n: string) => n[0]).join('') || 'NA'}
+        </div>
+        <div>
+          <h1 className="font-bold text-xl">{data.personalInfo.fullName || 'Your Name'}</h1>
+          <p className="opacity-80">{data.experience[0]?.position || 'Professional'}</p>
+        </div>
+      </div>
+      <div className="flex gap-4 mt-4 opacity-80 text-[10px]">
+        {data.personalInfo.email && <span>✉ {data.personalInfo.email}</span>}
+        {data.personalInfo.phone && <span>☎ {data.personalInfo.phone}</span>}
+        {data.personalInfo.location && <span>📍 {data.personalInfo.location}</span>}
+      </div>
+    </div>
+
+    <div className="p-6">
+      {data.personalInfo.summary && (
+        <div className="mb-5 p-4 bg-white rounded-lg shadow-sm">
+          <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="col-span-2 space-y-4">
+          {data.experience.length > 0 && (
+            <div className="bg-white p-4 rounded-lg shadow-sm">
+              <h4 className="font-bold text-sm text-rose-600 mb-3">💼 Experience</h4>
+              <div className="border-l-2 border-rose-200 pl-4 space-y-4">
+                {data.experience.map((exp: any) => (
+                  <div key={exp.id} className="relative">
+                    <div className="absolute -left-[21px] top-1 w-2 h-2 bg-rose-400 rounded-full"></div>
+                    <p className="font-semibold">{exp.position}</p>
+                    <p className="text-rose-500">{exp.company}</p>
+                    <p className="text-slate-400 text-[10px]">{exp.startDate} — {exp.endDate || 'Present'}</p>
+                    {exp.description && <p className="text-slate-600 mt-1">{exp.description}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {data.projects.length > 0 && (
+            <div className="bg-white p-4 rounded-lg shadow-sm">
+              <h4 className="font-bold text-sm text-rose-600 mb-3">🚀 Projects</h4>
+              {data.projects.map((proj: any) => (
+                <div key={proj.id} className="mb-3">
+                  <p className="font-semibold">{proj.name}</p>
+                  {proj.technologies && (
+                    <div className="flex flex-wrap gap-1 my-1">
+                      {proj.technologies.split(',').map((tech: string, i: number) => (
+                        <span key={i} className="bg-rose-100 text-rose-600 px-2 py-0.5 rounded text-[9px]">
+                          {tech.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {proj.description && <p className="text-slate-600 text-[10px]">{proj.description}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          {data.education.length > 0 && (
+            <div className="bg-white p-4 rounded-lg shadow-sm">
+              <h4 className="font-bold text-sm text-rose-600 mb-3">🎓 Education</h4>
+              {data.education.map((edu: any) => (
+                <div key={edu.id} className="mb-2">
+                  <p className="font-semibold text-[10px]">{edu.degree}</p>
+                  <p className="text-slate-500 text-[10px]">{edu.school}</p>
+                  <p className="text-slate-400 text-[9px]">{edu.endDate}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {data.skills.length > 0 && (
+            <div className="bg-white p-4 rounded-lg shadow-sm">
+              <h4 className="font-bold text-sm text-rose-600 mb-3">⚡ Skills</h4>
+              <div className="flex flex-wrap gap-1">
+                {data.skills.map((skill: any) => (
+                  <span key={skill.id} className="px-2 py-1 rounded-full text-[10px]" style={{ backgroundColor: secondary, color: primary }}>
+                    {skill.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {data.achievements.length > 0 && (
+            <div className="bg-white p-4 rounded-lg shadow-sm">
+              <h4 className="font-bold text-sm mb-3" style={{ color: primary }}>🏆 Achievements</h4>
+              {data.achievements.map((ach: any) => (
+                <div key={ach.id} className="mb-2">
+                  <p className="font-semibold text-[10px]">{ach.title}</p>
+                  <p className="text-slate-400 text-[9px]">{ach.date}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {data.customSections?.map((section: any) => (
+            section.items.length > 0 && (
+              <div key={section.id} className="bg-white p-4 rounded-lg shadow-sm">
+                <h4 className="font-bold text-sm mb-3" style={{ color: primary }}>📝 {section.title}</h4>
+                <ul className="text-slate-600 space-y-1 text-[10px]">
+                  {section.items.map((item: any) => (
+                    <li key={item.id}>• {item.content}</li>
+                  ))}
+                </ul>
+              </div>
+            )
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+  );
+};
 
 export default Builder;
