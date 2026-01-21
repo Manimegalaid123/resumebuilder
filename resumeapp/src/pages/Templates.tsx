@@ -16,6 +16,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Set up PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const categories = [
   { id: 'all', name: 'All Templates', icon: LayoutGrid },
@@ -1169,75 +1173,263 @@ const Templates: React.FC = () => {
     fileInputRef.current?.click();
   };
 
-  // Parse resume text and extract information
+  // Advanced resume text parsing - extracts all sections properly
   const parseResumeText = (text: string) => {
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    // Clean up the text
+    const cleanText = text
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/\t/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/\n\s*\n/g, '\n\n');
     
-    // Extract email
-    const emailMatch = text.match(/[\w.-]+@[\w.-]+\.\w+/);
+    const lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    
+    // Extract email - more comprehensive pattern
+    const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
     const email = emailMatch ? emailMatch[0] : '';
     
-    // Extract phone
-    const phoneMatch = text.match(/(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
-    const phone = phoneMatch ? phoneMatch[0] : '';
-    
-    // Extract name (usually first line or first non-email line)
-    let fullName = '';
-    for (const line of lines.slice(0, 5)) {
-      if (!line.includes('@') && !line.match(/^\d/) && line.length > 2 && line.length < 50) {
-        fullName = line;
+    // Extract phone - multiple formats including Indian numbers
+    const phonePatterns = [
+      /\+91[\s.-]?\d{10}/,
+      /\+91[\s.-]?\d{5}[\s.-]?\d{5}/,
+      /\+\d{1,3}[\s.-]?\d{10}/,
+      /\d{10}/,
+      /\(\d{3}\)[\s.-]?\d{3}[\s.-]?\d{4}/,
+      /\d{3}[\s.-]?\d{3}[\s.-]?\d{4}/,
+      /\+\d{1,3}[\s.-]?\d{3,4}[\s.-]?\d{3,4}[\s.-]?\d{3,4}/
+    ];
+    let phone = '';
+    for (const pattern of phonePatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        phone = match[0];
         break;
       }
     }
     
-    // Extract summary/objective
+    // Extract name - usually the first prominent line (before email/phone)
+    let fullName = '';
+    for (const line of lines.slice(0, 10)) {
+      const cleanLine = line.replace(/[^\w\s]/g, '').trim();
+      // Name should be 2-4 words, alphabetic, not too long
+      if (
+        cleanLine.length >= 3 && 
+        cleanLine.length <= 50 &&
+        !cleanLine.includes('@') && 
+        !cleanLine.match(/^\d/) &&
+        !cleanLine.match(/^\+/) &&
+        cleanLine.split(' ').length >= 1 &&
+        cleanLine.split(' ').length <= 4 &&
+        /^[A-Za-z\s]+$/.test(cleanLine) &&
+        !cleanLine.toLowerCase().includes('resume') &&
+        !cleanLine.toLowerCase().includes('curriculum') &&
+        !cleanLine.toLowerCase().includes('vitae')
+      ) {
+        fullName = cleanLine;
+        break;
+      }
+    }
+    
+    // Extract job title / desired position
+    let jobTitle = '';
+    const titlePatterns = [
+      /(?:software|senior|junior|lead|full[\s-]?stack|front[\s-]?end|back[\s-]?end|web|mobile|data|machine learning|ai|ml|devops|cloud|system|network|database|qa|test|ui[\s\/]ux|product|project|business|marketing|sales|hr|finance|operations|graphic|content)[\s\w]*(?:developer|engineer|designer|analyst|manager|specialist|consultant|architect|administrator|coordinator|executive|intern|trainee)/gi,
+      /(?:developer|engineer|designer|analyst|manager|specialist|consultant|architect|administrator)/gi
+    ];
+    for (const pattern of titlePatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        jobTitle = match[0].trim();
+        break;
+      }
+    }
+    
+    // Extract LinkedIn
+    const linkedinMatch = text.match(/(?:linkedin\.com\/in\/|linkedin:?\s*)([a-zA-Z0-9-]+)/i);
+    const linkedin = linkedinMatch ? `linkedin.com/in/${linkedinMatch[1]}` : '';
+    
+    // Extract location
+    let location = '';
+    const locationPatterns = [
+      /(?:location|address|city)[:\s]*([A-Za-z\s,]+(?:India|USA|UK|Canada|Australia)?)/i,
+      /([A-Za-z]+),?\s*(?:Tamil Nadu|TN|Karnataka|KA|Maharashtra|MH|Delhi|Kerala|KL|Andhra Pradesh|AP|Telangana|TG|Gujarat|GJ|Rajasthan|RJ|West Bengal|WB|Punjab|PB|Haryana|HR|UP|MP|Bihar)/i,
+      /([A-Za-z]+),?\s*(?:India|USA|UK|Canada|Australia)/i
+    ];
+    for (const pattern of locationPatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        location = match[0].replace(/(?:location|address|city)[:\s]*/i, '').trim();
+        break;
+      }
+    }
+    
+    // Extract summary/objective/profile
     let summary = '';
-    const summaryMatch = text.match(/(summary|objective|profile|about)[:\s]*([^]*?)(?=(experience|education|skills|work|employment|$))/i);
-    if (summaryMatch) {
-      summary = summaryMatch[2].trim().substring(0, 500);
+    const summaryHeaders = ['summary', 'objective', 'profile', 'about me', 'career objective', 'professional summary'];
+    const sectionHeaders = ['experience', 'education', 'skills', 'projects', 'work', 'employment', 'qualifications', 'certifications', 'achievements', 'awards'];
+    
+    for (const header of summaryHeaders) {
+      const headerRegex = new RegExp(`(?:${header})[:\\s]*([\\s\\S]*?)(?=${sectionHeaders.join('|')}|$)`, 'i');
+      const match = cleanText.match(headerRegex);
+      if (match && match[1]) {
+        summary = match[1].trim().substring(0, 500);
+        break;
+      }
     }
     
-    // Extract skills
+    // Extract skills - comprehensive extraction
     const skills: string[] = [];
-    const skillsMatch = text.match(/(skills|technical skills|core competencies)[:\s]*([^]*?)(?=(experience|education|projects|certifications|$))/i);
-    if (skillsMatch) {
-      const skillText = skillsMatch[2];
-      // Split by common delimiters
-      const skillItems = skillText.split(/[,•·|;\n]/).map(s => s.trim()).filter(s => s.length > 1 && s.length < 30);
-      skills.push(...skillItems.slice(0, 15));
-    }
+    const skillHeaders = ['skills', 'technical skills', 'core competencies', 'technologies', 'tools', 'programming languages', 'frameworks', 'soft skills'];
     
-    // Extract experience
-    const experiences: { position: string; company: string; description: string }[] = [];
-    const expMatch = text.match(/(experience|employment|work history)[:\s]*([^]*?)(?=(education|skills|projects|certifications|$))/i);
-    if (expMatch) {
-      const expText = expMatch[2];
-      // Simple extraction - look for job title patterns
-      const jobPattern = /([A-Z][a-zA-Z\s]+(?:Engineer|Developer|Manager|Designer|Analyst|Director|Lead|Coordinator|Specialist|Consultant|Associate|Executive|Intern))/g;
-      const jobs = expText.match(jobPattern);
-      if (jobs) {
-        jobs.slice(0, 3).forEach(job => {
-          experiences.push({ position: job.trim(), company: '', description: '' });
+    for (const header of skillHeaders) {
+      const headerRegex = new RegExp(`(?:${header})[:\\s]*([\\s\\S]*?)(?=${sectionHeaders.join('|')}|$)`, 'i');
+      const match = cleanText.match(headerRegex);
+      if (match && match[1]) {
+        const skillText = match[1];
+        // Split by multiple delimiters
+        const skillItems = skillText
+          .split(/[,•·|;\n\r:]+/)
+          .map(s => s.replace(/^\s*[-–—]\s*/, '').trim())
+          .filter(s => s.length >= 2 && s.length <= 40)
+          .filter(s => !s.match(/^(and|or|the|with|using|including|such as)$/i));
+        skills.push(...skillItems);
+      }
+    }
+    // Remove duplicates
+    const uniqueSkills = [...new Set(skills)].slice(0, 20);
+    
+    // Extract experience - comprehensive extraction
+    const experiences: { position: string; company: string; description: string; startDate: string; endDate: string }[] = [];
+    const expRegex = /(?:experience|employment|work history)[:\s]*([\s\S]*?)(?=education|skills|projects|certifications|achievements|awards|$)/i;
+    const expMatch = cleanText.match(expRegex);
+    
+    if (expMatch && expMatch[1]) {
+      const expText = expMatch[1];
+      
+      // Try to find job entries with dates
+      const jobEntryPattern = /([A-Za-z\s]+(?:Developer|Engineer|Designer|Analyst|Manager|Intern|Executive|Specialist|Coordinator|Lead|Director|Consultant|Trainee|Associate))[\s\S]*?(?:(\w+\s*\d{4})\s*[-–—]\s*(\w+\s*\d{4}|Present|Current|Till Date))/gi;
+      let jobMatch;
+      while ((jobMatch = jobEntryPattern.exec(expText)) !== null) {
+        experiences.push({
+          position: jobMatch[1].trim(),
+          company: '',
+          description: '',
+          startDate: jobMatch[2] || '',
+          endDate: jobMatch[3] || 'Present'
         });
+      }
+      
+      // If no structured matches, try simpler pattern
+      if (experiences.length === 0) {
+        const simpleJobPattern = /([A-Z][a-zA-Z\s]*(?:Intern|Developer|Engineer|Designer|Analyst|Manager|Executive|Specialist|Trainee))/g;
+        const jobs = expText.match(simpleJobPattern);
+        if (jobs) {
+          jobs.slice(0, 3).forEach(job => {
+            experiences.push({
+              position: job.trim(),
+              company: '',
+              description: '',
+              startDate: '',
+              endDate: 'Present'
+            });
+          });
+        }
       }
     }
     
-    // Look for education
-    const educations: { degree: string; school: string; field: string }[] = [];
-    const eduMatch = text.match(/(education|academic|qualification)[:\s]*([^]*?)(?=(experience|skills|projects|$))/i);
-    if (eduMatch) {
-      const eduText = eduMatch[2];
-      // Look for degree patterns
-      const degreePattern = /(bachelor|master|phd|b\.?s\.?|m\.?s\.?|b\.?a\.?|m\.?a\.?|mba|btech|mtech|diploma).+/gi;
-      const degrees = eduText.match(degreePattern);
-      if (degrees) {
-        degrees.slice(0, 2).forEach(deg => {
-          educations.push({ degree: deg.trim(), school: '', field: '' });
-        });
+    // Extract education - comprehensive extraction
+    const educations: { degree: string; school: string; field: string; startDate: string; endDate: string; grade: string }[] = [];
+    const eduRegex = /(?:education|academic|qualifications?)[:\s]*([\s\S]*?)(?=experience|skills|projects|certifications|achievements|work|$)/i;
+    const eduMatch = cleanText.match(eduRegex);
+    
+    if (eduMatch && eduMatch[1]) {
+      const eduText = eduMatch[1];
+      
+      // Match degree patterns
+      const degreePatterns = [
+        /(Bachelor|Master|PhD|B\.?Tech|M\.?Tech|B\.?E\.?|M\.?E\.?|B\.?Sc|M\.?Sc|B\.?A\.?|M\.?A\.?|MBA|BBA|BCA|MCA|B\.?Com|M\.?Com|Diploma|HSC|SSC|SSLC|12th|10th|Higher Secondary|Secondary)[\s\S]*?(?:(\d{4})\s*[-–—]\s*(\d{4}|Present|Current|Pursuing))?/gi,
+      ];
+      
+      for (const pattern of degreePatterns) {
+        let degMatch;
+        while ((degMatch = pattern.exec(eduText)) !== null) {
+          // Try to find school name near the degree
+          const nearbyText = eduText.substring(Math.max(0, degMatch.index - 100), degMatch.index + degMatch[0].length + 100);
+          const schoolMatch = nearbyText.match(/(?:College|University|Institute|School|Academy)[:\s,]*([A-Za-z\s,]+)/i);
+          
+          educations.push({
+            degree: degMatch[1].trim(),
+            school: schoolMatch ? schoolMatch[0].trim() : '',
+            field: '',
+            startDate: degMatch[2] || '',
+            endDate: degMatch[3] || '',
+            grade: ''
+          });
+        }
+      }
+      
+      // Look for CGPA/Grade
+      const gradeMatch = eduText.match(/(?:CGPA|GPA|Grade|Percentage)[:\s]*(\d+\.?\d*(?:\s*%)?)/i);
+      if (gradeMatch && educations.length > 0) {
+        educations[0].grade = gradeMatch[0];
       }
     }
     
-    return { fullName, email, phone, summary, skills, experiences, educations };
+    // Extract achievements
+    const achievements: { title: string; description: string }[] = [];
+    const achieveRegex = /(?:achievements?|awards?|honors?|accomplishments?)[:\s]*([\s\S]*?)(?=experience|education|skills|projects|certifications|$)/i;
+    const achieveMatch = cleanText.match(achieveRegex);
+    
+    if (achieveMatch && achieveMatch[1]) {
+      const achieveText = achieveMatch[1];
+      const achieveItems = achieveText
+        .split(/[•·\n\r]+/)
+        .map(s => s.replace(/^\s*[-–—]\s*/, '').trim())
+        .filter(s => s.length >= 10 && s.length <= 200);
+      
+      achieveItems.slice(0, 5).forEach(item => {
+        achievements.push({ title: item.substring(0, 50), description: item });
+      });
+    }
+    
+    // Extract projects
+    const projects: { name: string; description: string; technologies: string }[] = [];
+    const projRegex = /(?:projects?)[:\s]*([\s\S]*?)(?=experience|education|skills|certifications|achievements|$)/i;
+    const projMatch = cleanText.match(projRegex);
+    
+    if (projMatch && projMatch[1]) {
+      const projText = projMatch[1];
+      // Look for project names (usually capitalized or in bold patterns)
+      const projItems = projText
+        .split(/[•·\n\r]{2,}/)
+        .map(s => s.trim())
+        .filter(s => s.length >= 10);
+      
+      projItems.slice(0, 5).forEach(item => {
+        const firstLine = item.split('\n')[0];
+        projects.push({
+          name: firstLine.substring(0, 50),
+          description: item.substring(firstLine.length).trim(),
+          technologies: ''
+        });
+      });
+    }
+    
+    return { 
+      fullName, 
+      email, 
+      phone, 
+      linkedin,
+      location,
+      jobTitle,
+      summary, 
+      skills: uniqueSkills, 
+      experiences, 
+      educations,
+      achievements,
+      projects
+    };
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1250,41 +1442,50 @@ const Templates: React.FC = () => {
     try {
       let text = '';
       
-      if (file.type === 'application/pdf') {
-        // For PDF, we'll use a simple approach - read as text
+      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        // Use pdfjs-dist for proper PDF text extraction
         const arrayBuffer = await file.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         
-        // Simple PDF text extraction (looks for text between parentheses)
-        let pdfText = '';
-        for (let i = 0; i < uint8Array.length - 1; i++) {
-          if (uint8Array[i] === 40) { // '('
-            let j = i + 1;
-            let str = '';
-            while (j < uint8Array.length && uint8Array[j] !== 41) { // ')'
-              if (uint8Array[j] >= 32 && uint8Array[j] <= 126) {
-                str += String.fromCharCode(uint8Array[j]);
-              }
-              j++;
-            }
-            if (str.length > 0) pdfText += str + ' ';
-            i = j;
-          }
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items
+            .map((item: any) => item.str)
+            .join(' ');
+          fullText += pageText + '\n';
         }
-        text = pdfText || await file.text();
+        text = fullText;
       } else if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
         text = await file.text();
       } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.name.endsWith('.docx')) {
-        // For DOCX, read as text (basic extraction)
+        // For DOCX - extract XML content which contains text
         const arrayBuffer = await file.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
+        
+        // DOCX is a ZIP file, look for text in document.xml
         let docxText = '';
-        // Look for readable text patterns
-        for (let i = 0; i < uint8Array.length; i++) {
-          if (uint8Array[i] >= 32 && uint8Array[i] <= 126) {
-            docxText += String.fromCharCode(uint8Array[i]);
-          } else if (uint8Array[i] === 10 || uint8Array[i] === 13) {
-            docxText += '\n';
+        const textDecoder = new TextDecoder('utf-8');
+        const fullContent = textDecoder.decode(uint8Array);
+        
+        // Extract text between XML tags
+        const textMatches = fullContent.match(/<w:t[^>]*>([^<]+)<\/w:t>/g);
+        if (textMatches) {
+          docxText = textMatches
+            .map(match => match.replace(/<[^>]+>/g, ''))
+            .join(' ');
+        }
+        
+        // Fallback: extract readable ASCII
+        if (!docxText || docxText.length < 50) {
+          docxText = '';
+          for (let i = 0; i < uint8Array.length; i++) {
+            if (uint8Array[i] >= 32 && uint8Array[i] <= 126) {
+              docxText += String.fromCharCode(uint8Array[i]);
+            } else if (uint8Array[i] === 10 || uint8Array[i] === 13) {
+              docxText += '\n';
+            }
           }
         }
         text = docxText;
@@ -1292,12 +1493,15 @@ const Templates: React.FC = () => {
         throw new Error('Please upload a PDF, DOCX, or TXT file');
       }
       
+      console.log('Extracted text:', text.substring(0, 500)); // Debug log
+      
       if (text.length < 50) {
-        throw new Error('Could not extract text from file. Please try a different format or create new.');
+        throw new Error('Could not extract text from file. Please try a TXT file for best results.');
       }
       
       // Parse the resume
       const parsed = parseResumeText(text);
+      console.log('Parsed data:', parsed); // Debug log
       
       // Store parsed data in localStorage for Builder to load
       const uploadedData = {
@@ -1305,11 +1509,16 @@ const Templates: React.FC = () => {
           fullName: parsed.fullName,
           email: parsed.email,
           phone: parsed.phone,
+          linkedin: parsed.linkedin,
+          location: parsed.location,
           summary: parsed.summary,
         },
+        jobTitle: parsed.jobTitle,
         skills: parsed.skills,
         experiences: parsed.experiences,
         educations: parsed.educations,
+        achievements: parsed.achievements,
+        projects: parsed.projects,
         timestamp: Date.now()
       };
       
@@ -1319,6 +1528,7 @@ const Templates: React.FC = () => {
       navigate(`/builder?template=${selectedTemplateId}&uploaded=true`);
       
     } catch (error: any) {
+      console.error('Upload error:', error);
       setUploadError(error.message || 'Failed to parse resume. Please try again.');
     } finally {
       setIsUploading(false);

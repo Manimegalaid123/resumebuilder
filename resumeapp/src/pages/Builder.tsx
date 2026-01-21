@@ -172,9 +172,16 @@ const Builder: React.FC = () => {
             // Prepare resume data with proper structure
             const resumeToLoad: any = {};
             
-            // Personal info
+            // Personal info - include all fields
             if (parsed.personalInfo) {
-              resumeToLoad.personalInfo = parsed.personalInfo;
+              resumeToLoad.personalInfo = {
+                fullName: parsed.personalInfo.fullName || '',
+                email: parsed.personalInfo.email || '',
+                phone: parsed.personalInfo.phone || '',
+                linkedin: parsed.personalInfo.linkedin || '',
+                location: parsed.personalInfo.location || '',
+                summary: parsed.personalInfo.summary || '',
+              };
             }
             
             // Skills - convert to proper format
@@ -186,30 +193,51 @@ const Builder: React.FC = () => {
               }));
             }
             
-            // Experiences - convert to proper format
+            // Experiences - convert to proper format with all fields
             if (parsed.experiences && parsed.experiences.length > 0) {
               resumeToLoad.experience = parsed.experiences.map((exp: any) => ({
                 id: generateId(),
                 company: exp.company || '',
                 position: exp.position || '',
-                location: '',
-                startDate: '',
-                endDate: '',
-                current: false,
+                location: exp.location || '',
+                startDate: exp.startDate || '',
+                endDate: exp.endDate || 'Present',
+                current: exp.endDate?.toLowerCase().includes('present') || false,
                 description: exp.description || ''
               }));
             }
             
-            // Education - convert to proper format
+            // Education - convert to proper format with all fields
             if (parsed.educations && parsed.educations.length > 0) {
               resumeToLoad.education = parsed.educations.map((edu: any) => ({
                 id: generateId(),
                 school: edu.school || '',
                 degree: edu.degree || '',
                 field: edu.field || '',
-                startDate: '',
-                endDate: '',
-                gpa: ''
+                startDate: edu.startDate || '',
+                endDate: edu.endDate || '',
+                gpa: edu.grade || edu.gpa || ''
+              }));
+            }
+            
+            // Achievements - convert to proper format
+            if (parsed.achievements && parsed.achievements.length > 0) {
+              resumeToLoad.achievements = parsed.achievements.map((ach: any) => ({
+                id: generateId(),
+                title: ach.title || '',
+                description: ach.description || '',
+                date: ''
+              }));
+            }
+            
+            // Projects - convert to proper format
+            if (parsed.projects && parsed.projects.length > 0) {
+              resumeToLoad.projects = parsed.projects.map((proj: any) => ({
+                id: generateId(),
+                name: proj.name || '',
+                description: proj.description || '',
+                technologies: proj.technologies || '',
+                link: ''
               }));
             }
             

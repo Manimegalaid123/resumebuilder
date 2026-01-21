@@ -124,8 +124,34 @@ const ResumeContext = createContext<ResumeContextType | undefined>(undefined);
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
+// Storage key for resume data
+const STORAGE_KEY = 'resumeBuilderData';
+
+// Get saved data from localStorage
+const getSavedData = (): ResumeData => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return { ...defaultResumeData, ...parsed };
+    }
+  } catch (e) {
+    console.error('Error loading saved resume:', e);
+  }
+  return defaultResumeData;
+};
+
 export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [resumeData, setResumeData] = useState<ResumeData>(defaultResumeData);
+  const [resumeData, setResumeData] = useState<ResumeData>(() => getSavedData());
+
+  // Save to localStorage whenever resumeData changes
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(resumeData));
+    } catch (e) {
+      console.error('Error saving resume:', e);
+    }
+  }, [resumeData]);
 
   const updatePersonalInfo = (info: Partial<PersonalInfo>) => {
     setResumeData(prev => ({
@@ -151,6 +177,7 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Clear all resume data (start fresh)
   const clearResumeData = () => {
     setResumeData(defaultResumeData);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   const addEducation = () => {
