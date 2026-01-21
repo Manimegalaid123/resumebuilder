@@ -19,6 +19,7 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Tips from "./pages/Tips";
 import NotFound from "./pages/NotFound";
+import PublicResume from "./pages/PublicResume";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,8 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              {/* Public share page - no auth required */}
+              <Route path="/share/:shareId" element={<PublicResume />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

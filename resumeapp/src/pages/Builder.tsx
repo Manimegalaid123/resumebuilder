@@ -4,8 +4,6 @@ import { motion } from 'framer-motion';
 import { 
   Plus, 
   Trash2, 
-  Mic, 
-  MicOff, 
   Download, 
   User, 
   GraduationCap, 
@@ -19,7 +17,10 @@ import {
   MapPin,
   Linkedin,
   List,
-  PlusCircle
+  PlusCircle,
+  Mic,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -28,8 +29,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
 import { useResume } from '@/contexts/ResumeContext';
 import { cn } from '@/lib/utils';
 
@@ -44,6 +45,20 @@ const templateOptions = [
   { id: 'nebula', name: 'Nebula', style: 'modern-clean' },
   { id: 'stellar', name: 'Stellar', style: 'minimal' },
   { id: 'orbit', name: 'Orbit', style: 'creative' },
+  { id: 'executive', name: 'Executive', style: 'professional' },
+  { id: 'modern', name: 'Modern', style: 'two-column' },
+  { id: 'classic', name: 'Classic', style: 'traditional' },
+  { id: 'minimalist', name: 'Minimalist', style: 'clean' },
+  { id: 'creative', name: 'Creative', style: 'bold' },
+  { id: 'professional', name: 'Professional', style: 'corporate' },
+  { id: 'nova', name: 'Nova', style: 'ats-two-column' },
+  { id: 'eon', name: 'Eon', style: 'ats-sidebar' },
+  { id: 'solstice', name: 'Solstice', style: 'ats-clean' },
+  { id: 'zenith', name: 'Zenith', style: 'ats-minimal' },
+  { id: 'apex', name: 'Apex', style: 'ats-professional' },
+  { id: 'horizon', name: 'Horizon', style: 'ats-modern' },
+  { id: 'pinnacle', name: 'Pinnacle', style: 'ats-executive' },
+  { id: 'vertex', name: 'Vertex', style: 'ats-bold' },
 ];
 
 // Color accent options
@@ -63,17 +78,35 @@ const Builder: React.FC = () => {
   const urlTemplate = searchParams.get('template') || 'cosmos';
   
   const resumeRef = useRef<HTMLDivElement>(null);
-  const [isListening, setIsListening] = useState(false);
-  const [activeVoiceField, setActiveVoiceField] = useState<string | null>(null);
+  const lastFocusedInput = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState(urlTemplate);
   const [newSectionTitle, setNewSectionTitle] = useState('');
   const [showAddSection, setShowAddSection] = useState(false);
   const [selectedColor, setSelectedColor] = useState('slate');
   const [isMonochrome, setIsMonochrome] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [focusedField, setFocusedField] = useState<string>('');
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  // Track last focused input/textarea
+  useEffect(() => {
+    const handleFocus = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        lastFocusedInput.current = target as HTMLInputElement | HTMLTextAreaElement;
+        const label = target.closest('div')?.querySelector('label')?.textContent || 'field';
+        setFocusedField(label);
+      }
+    };
+    
+    document.addEventListener('focusin', handleFocus);
+    return () => document.removeEventListener('focusin', handleFocus);
+  }, []);
 
   const {
     resumeData,
     updatePersonalInfo,
+    loadResumeData,
+    clearResumeData,
     addEducation,
     updateEducation,
     removeEducation,
@@ -104,37 +137,99 @@ const Builder: React.FC = () => {
       setSelectedTemplate(urlTemplate);
       setTemplate(urlTemplate as any);
     }
-  }, [urlTemplate, setTemplate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlTemplate]);
 
-  const startVoiceInput = (fieldId: string) => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Voice input is not supported in your browser');
-      return;
+  // Handle "Create New" - clear data when new=true
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const isNew = searchParams.get('new') === 'true';
+    
+    if (isNew) {
+      clearResumeData();
+      // Remove new param from URL
+      const newUrl = window.location.pathname + '?template=' + urlTemplate;
+      window.history.replaceState({}, '', newUrl);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    recognition.onstart = () => {
-      setIsListening(true);
-      setActiveVoiceField(fieldId);
-    };
-
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      // Handle voice input result based on field
-      console.log('Voice input:', transcript, 'for field:', fieldId);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      setActiveVoiceField(null);
-    };
-
-    recognition.start();
-  };
+  // Load uploaded resume data from localStorage
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const isUploaded = searchParams.get('uploaded') === 'true';
+    
+    if (isUploaded) {
+      const savedData = localStorage.getItem('uploadedResumeData');
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
+          
+          // Check if data is fresh (within 5 minutes)
+          if (Date.now() - parsed.timestamp < 5 * 60 * 1000) {
+            const generateId = () => Math.random().toString(36).substring(2, 9);
+            
+            // Prepare resume data with proper structure
+            const resumeToLoad: any = {};
+            
+            // Personal info
+            if (parsed.personalInfo) {
+              resumeToLoad.personalInfo = parsed.personalInfo;
+            }
+            
+            // Skills - convert to proper format
+            if (parsed.skills && parsed.skills.length > 0) {
+              resumeToLoad.skills = parsed.skills.map((skillName: string) => ({
+                id: generateId(),
+                name: skillName,
+                proficiency: 80
+              }));
+            }
+            
+            // Experiences - convert to proper format
+            if (parsed.experiences && parsed.experiences.length > 0) {
+              resumeToLoad.experience = parsed.experiences.map((exp: any) => ({
+                id: generateId(),
+                company: exp.company || '',
+                position: exp.position || '',
+                location: '',
+                startDate: '',
+                endDate: '',
+                current: false,
+                description: exp.description || ''
+              }));
+            }
+            
+            // Education - convert to proper format
+            if (parsed.educations && parsed.educations.length > 0) {
+              resumeToLoad.education = parsed.educations.map((edu: any) => ({
+                id: generateId(),
+                school: edu.school || '',
+                degree: edu.degree || '',
+                field: edu.field || '',
+                startDate: '',
+                endDate: '',
+                gpa: ''
+              }));
+            }
+            
+            // Load the resume data
+            loadResumeData(resumeToLoad);
+            
+            // Clear the localStorage after loading
+            localStorage.removeItem('uploadedResumeData');
+            
+            // Remove uploaded param from URL
+            const newUrl = window.location.pathname + '?template=' + urlTemplate;
+            window.history.replaceState({}, '', newUrl);
+          }
+        } catch (e) {
+          console.error('Error loading uploaded resume:', e);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const downloadPDF = async () => {
     if (!resumeRef.current) return;
@@ -162,6 +257,108 @@ const Builder: React.FC = () => {
 
     pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
     pdf.save('resume.pdf');
+  };
+
+  // Simple voice input - works with last focused field
+  const startVoice = () => {
+    const activeEl = lastFocusedInput.current;
+    if (!activeEl) {
+      alert('First click on a text field, then click the mic button');
+      return;
+    }
+
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Voice not supported. Use Chrome or Edge.');
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.continuous = false;
+
+    recognition.onstart = () => {
+      console.log('Voice started for:', focusedField);
+      setIsListening(true);
+    };
+    
+    recognition.onresult = (e: any) => {
+      let text = e.results[0][0].transcript.trim();
+      text = text.charAt(0).toUpperCase() + text.slice(1);
+      console.log('Voice result:', text);
+      
+      const isTextarea = activeEl.tagName === 'TEXTAREA';
+      const currentVal = activeEl.value;
+      
+      let newValue: string;
+      if (isTextarea && currentVal) {
+        const sep = currentVal.endsWith('.') ? ' ' : '. ';
+        newValue = currentVal + sep + text;
+      } else {
+        newValue = text;
+      }
+      
+      // Use native setter to trigger React
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        isTextarea ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype,
+        'value'
+      )?.set;
+      
+      if (nativeSetter) {
+        nativeSetter.call(activeEl, newValue);
+        activeEl.dispatchEvent(new Event('input', { bubbles: true }));
+        console.log('Value set to:', newValue);
+      }
+      
+      activeEl.focus();
+    };
+
+    recognition.onerror = (e: any) => {
+      console.log('Voice error:', e.error);
+      setIsListening(false);
+      if (e.error === 'not-allowed') {
+        alert('Please allow microphone access');
+      }
+    };
+    
+    recognition.onend = () => {
+      console.log('Voice ended');
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
+
+  // AI Generate Professional Summary
+  const generateAISummary = async () => {
+    setIsGeneratingAI(true);
+    
+    // Gather user data
+    const { personalInfo, experience, skills, education } = resumeData;
+    
+    // Generate AI-like summary (template-based for now)
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate AI delay
+    
+    let summary = '';
+    const skillNames = skills.map(s => s.name).filter(Boolean);
+    
+    if (experience.length > 0 && skillNames.length > 0) {
+      const yearsExp = experience.length > 2 ? 'seasoned' : experience.length > 0 ? 'experienced' : 'aspiring';
+      const topSkills = skillNames.slice(0, 3).join(', ');
+      const latestRole = experience[0];
+      
+      summary = `${yearsExp.charAt(0).toUpperCase() + yearsExp.slice(1)} professional with expertise in ${topSkills}. ${latestRole ? `Currently serving as ${latestRole.position}${latestRole.company ? ` at ${latestRole.company}` : ''}, ` : ''}demonstrating strong capabilities in ${skillNames[0] || 'various technologies'}. ${education.length > 0 ? `Holds ${education[0].degree} in ${education[0].field} from ${education[0].school}. ` : ''}Passionate about delivering high-quality results and continuously improving skills to drive business success.`;
+    } else if (skillNames.length > 0) {
+      summary = `Motivated professional with strong skills in ${skillNames.join(', ')}. Eager to leverage technical expertise and problem-solving abilities to contribute to team success. Committed to continuous learning and professional development.`;
+    } else if (education.length > 0) {
+      summary = `Recent graduate with ${education[0].degree} in ${education[0].field} from ${education[0].school}. Eager to apply academic knowledge and fresh perspectives to real-world challenges. Quick learner with strong analytical skills and a passion for growth.`;
+    } else {
+      summary = `Dynamic and motivated professional seeking to leverage skills and experience to drive organizational success. Strong communicator with excellent problem-solving abilities and a commitment to continuous improvement.`;
+    }
+    
+    updatePersonalInfo({ summary });
+    setIsGeneratingAI(false);
   };
 
   const SectionHeader: React.FC<{
@@ -195,6 +392,29 @@ const Builder: React.FC = () => {
 
   return (
     <Layout hideFooter>
+      {/* Floating Voice Button */}
+      <div className="fixed bottom-6 left-1/4 -translate-x-1/2 z-50">
+        <Button
+          onClick={startVoice}
+          size="lg"
+          className={cn(
+            'rounded-full w-14 h-14 shadow-xl',
+            isListening ? 'bg-red-500 hover:bg-red-600 animate-pulse' : 'gradient-bg'
+          )}
+          title="Click a field first, then click to speak"
+        >
+          <Mic className="w-6 h-6" />
+        </Button>
+        {(isListening || focusedField) && (
+          <div className={cn(
+            'absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 rounded-lg text-sm whitespace-nowrap shadow-lg',
+            isListening ? 'bg-red-500 text-white' : 'bg-card border'
+          )}>
+            {isListening ? '🔴 Listening...' : `🎤 ${focusedField}`}
+          </div>
+        )}
+      </div>
+
       <div className="h-[calc(100vh-4rem)] flex">
         {/* Left Panel - Form */}
         <div className="w-1/2 border-r border-border overflow-y-auto p-6">
@@ -206,13 +426,13 @@ const Builder: React.FC = () => {
                 <p className="text-muted-foreground">Fill in your details to create your resume</p>
               </div>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => startVoiceInput('general')}
-                  className={cn(isListening && 'text-primary')}
+                <Button 
+                  onClick={startVoice}
+                  variant={isListening ? "destructive" : "outline"}
+                  className={isListening ? "animate-pulse" : ""}
                 >
-                  {isListening ? <Mic className="w-4 h-4 animate-pulse" /> : <MicOff className="w-4 h-4" />}
+                  <Mic className="w-4 h-4 mr-2" />
+                  {isListening ? "Listening..." : "Voice"}
                 </Button>
                 <Button onClick={downloadPDF} className="gradient-bg">
                   <Download className="w-4 h-4 mr-2" />
@@ -324,7 +544,28 @@ const Builder: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <Label>Professional Summary</Label>
+                    <div className="flex items-center justify-between mb-1">
+                      <Label>Professional Summary</Label>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={generateAISummary}
+                        disabled={isGeneratingAI}
+                        className="gap-1 text-xs h-7"
+                      >
+                        {isGeneratingAI ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3 h-3" />
+                            AI Generate
+                          </>
+                        )}
+                      </Button>
+                    </div>
                     <Textarea
                       placeholder="Write a brief summary of your professional background..."
                       value={resumeData.personalInfo.summary}
@@ -408,18 +649,11 @@ const Builder: React.FC = () => {
                     </div>
                   ))}
                   {resumeData.education.length === 0 && (
-                    <div className="text-center py-6">
-                      <p className="text-muted-foreground mb-4">
-                        No education added yet.
+                    <div className="text-center py-8">
+                      <GraduationCap className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+                      <p className="text-muted-foreground">
+                        No education added yet. Click "+ Add" above to add your education.
                       </p>
-                      <Button 
-                        onClick={addEducation}
-                        variant="outline"
-                        className="gap-2"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Education
-                      </Button>
                     </div>
                   )}
                 </div>
@@ -513,18 +747,11 @@ const Builder: React.FC = () => {
                     </div>
                   ))}
                   {resumeData.experience.length === 0 && (
-                    <div className="text-center py-6">
-                      <p className="text-muted-foreground mb-4">
-                        No experience added yet.
+                    <div className="text-center py-8">
+                      <Briefcase className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+                      <p className="text-muted-foreground">
+                        No experience added yet. Click "+ Add" above to add your work experience.
                       </p>
-                      <Button 
-                        onClick={addExperience}
-                        variant="outline"
-                        className="gap-2"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Experience
-                      </Button>
                     </div>
                   )}
                 </div>
@@ -588,18 +815,11 @@ const Builder: React.FC = () => {
                     </div>
                   ))}
                   {resumeData.projects.length === 0 && (
-                    <div className="text-center py-6">
-                      <p className="text-muted-foreground mb-4">
-                        No projects added yet.
+                    <div className="text-center py-8">
+                      <FolderOpen className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+                      <p className="text-muted-foreground">
+                        No projects added yet. Click "+ Add" above to add your first project.
                       </p>
-                      <Button 
-                        onClick={addProject}
-                        variant="outline"
-                        className="gap-2"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Project
-                      </Button>
                     </div>
                   )}
                 </div>
@@ -655,18 +875,11 @@ const Builder: React.FC = () => {
                     </div>
                   ))}
                   {resumeData.achievements.length === 0 && (
-                    <div className="text-center py-6">
-                      <p className="text-muted-foreground mb-4">
-                        No achievements added yet.
+                    <div className="text-center py-8">
+                      <Award className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+                      <p className="text-muted-foreground">
+                        No achievements added yet. Click "+ Add" above to add your achievements.
                       </p>
-                      <Button 
-                        onClick={addAchievement}
-                        variant="outline"
-                        className="gap-2"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Achievement
-                      </Button>
                     </div>
                   )}
                 </div>
@@ -709,18 +922,11 @@ const Builder: React.FC = () => {
                     </div>
                   ))}
                   {resumeData.skills.length === 0 && (
-                    <div className="text-center py-6">
-                      <p className="text-muted-foreground mb-4">
-                        No skills added yet.
+                    <div className="text-center py-8">
+                      <Wrench className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+                      <p className="text-muted-foreground">
+                        No skills added yet. Click "+ Add" above to add your skills.
                       </p>
-                      <Button 
-                        onClick={addSkill}
-                        variant="outline"
-                        className="gap-2"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Skill
-                      </Button>
                     </div>
                   )}
                 </div>
@@ -882,6 +1088,20 @@ const Builder: React.FC = () => {
               {selectedTemplate === 'nebula' && <NebulaTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
               {selectedTemplate === 'stellar' && <StellarTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
               {selectedTemplate === 'orbit' && <OrbitTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'executive' && <ExecutiveTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'modern' && <ModernTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'classic' && <ClassicTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'minimalist' && <MinimalistTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'creative' && <CreativeTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'professional' && <ProfessionalTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'nova' && <NovaTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'eon' && <EonTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'solstice' && <SolsticeTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'zenith' && <ZenithTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'apex' && <ApexTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'horizon' && <HorizonTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'pinnacle' && <PinnacleTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
+              {selectedTemplate === 'vertex' && <VertexTemplate data={resumeData} accentColor={colorOptions.find(c => c.id === selectedColor)!} isMonochrome={isMonochrome} />}
             </div>
           </div>
         </div>
@@ -1000,13 +1220,28 @@ const CosmosTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochro
       )}
 
       {data.projects.length > 0 && (
-        <div>
+        <div className="mb-5">
           <h4 className="font-bold text-sm text-slate-800 border-b border-slate-300 pb-2 mb-2">PROJECTS</h4>
           {data.projects.map((proj: any) => (
             <div key={proj.id} className="mb-2">
               <p className="font-semibold">{proj.name}</p>
               {proj.technologies && <p className="text-slate-500 text-[10px]">{proj.technologies}</p>}
               {proj.description && <p className="text-slate-600 mt-1">{proj.description}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {data.achievements.length > 0 && (
+        <div className="mb-5">
+          <h4 className="font-bold text-sm text-slate-800 border-b border-slate-300 pb-2 mb-2">ACHIEVEMENTS</h4>
+          {data.achievements.map((ach: any) => (
+            <div key={ach.id} className="mb-2">
+              <div className="flex justify-between items-start">
+                <p className="font-semibold">{ach.title}</p>
+                {ach.date && <p className="text-slate-500 text-[10px]">{ach.date}</p>}
+              </div>
+              {ach.description && <p className="text-slate-600">{ach.description}</p>}
             </div>
           ))}
         </div>
@@ -1032,6 +1267,9 @@ const CosmosTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochro
 // Celestial Template - Centered single-column (like Howard)
 const CelestialTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
   const primary = isMonochrome ? '#475569' : accentColor.primary;
+  
+  // Debug log
+  console.log('Celestial Template Data:', { achievements: data.achievements, projects: data.projects });
   
   return (
   <div className="h-full text-[11px] p-8">
@@ -1095,6 +1333,37 @@ const CelestialTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonoc
         </div>
       )}
     </div>
+
+    {data.projects.length > 0 && (
+      <div className="mt-5">
+        <h4 className="font-bold text-sm text-slate-700 text-center border-b border-slate-200 pb-2 mb-3">PROJECTS</h4>
+        {data.projects.map((proj: any) => (
+          <div key={proj.id} className="mb-3">
+            <div className="flex justify-between">
+              <p className="font-semibold">{proj.name}</p>
+              {proj.link && <a href={proj.link} className="text-blue-500 text-[10px]">{proj.link}</a>}
+            </div>
+            {proj.technologies && <p className="text-slate-400 text-[10px]">{proj.technologies}</p>}
+            {proj.description && <p className="text-slate-600 mt-1">{proj.description}</p>}
+          </div>
+        ))}
+      </div>
+    )}
+
+    {data.achievements.length > 0 && (
+      <div className="mt-5">
+        <h4 className="font-bold text-sm text-slate-700 text-center border-b border-slate-200 pb-2 mb-3">ACHIEVEMENTS</h4>
+        {data.achievements.map((ach: any) => (
+          <div key={ach.id} className="mb-2">
+            <div className="flex justify-between">
+              <p className="font-semibold">{ach.title}</p>
+              {ach.date && <p className="text-slate-500 text-[10px]">{ach.date}</p>}
+            </div>
+            {ach.description && <p className="text-slate-600">{ach.description}</p>}
+          </div>
+        ))}
+      </div>
+    )}
 
     {data.customSections?.map((section: any) => (
       section.items.length > 0 && (
@@ -1469,6 +1738,31 @@ const EclipseTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochr
             <div key={edu.id} className="mb-2">
               <p className="font-semibold">{edu.degree}{edu.field && `, ${edu.field}`}</p>
               <p className="text-slate-500">{edu.school} • {edu.startDate} — {edu.endDate}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {data.projects.length > 0 && (
+        <div className="mb-5">
+          <h4 className="font-bold text-sm text-cyan-600 border-b border-cyan-200 pb-2 mb-2">PROJECTS</h4>
+          {data.projects.map((proj: any) => (
+            <div key={proj.id} className="mb-3">
+              <p className="font-semibold">{proj.name}</p>
+              {proj.technologies && <p className="text-slate-400 text-[10px]">{proj.technologies}</p>}
+              {proj.description && <p className="text-slate-600 mt-1">{proj.description}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {data.achievements.length > 0 && (
+        <div className="mb-5">
+          <h4 className="font-bold text-sm text-cyan-600 border-b border-cyan-200 pb-2 mb-2">ACHIEVEMENTS</h4>
+          {data.achievements.map((ach: any) => (
+            <div key={ach.id} className="mb-2">
+              <p className="font-semibold">{ach.title} {ach.date && <span className="text-slate-400 font-normal">• {ach.date}</span>}</p>
+              {ach.description && <p className="text-slate-600">{ach.description}</p>}
             </div>
           ))}
         </div>
@@ -1855,6 +2149,1426 @@ const OrbitTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrom
       </div>
     </div>
   </div>
+  );
+};
+
+// Executive Template - Corporate style with bold header
+const ExecutiveTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#1e293b' : accentColor.primary;
+  
+  return (
+    <div className="h-full text-[11px] bg-white">
+      {/* Bold Header */}
+      <div className="p-6 text-white" style={{ backgroundColor: primary }}>
+        <h1 className="font-bold text-2xl tracking-wide">{data.personalInfo.fullName || 'Your Name'}</h1>
+        <p className="text-lg opacity-90 mt-1">{data.experience[0]?.position || 'Professional Title'}</p>
+        <div className="flex flex-wrap gap-4 mt-3 text-sm opacity-80">
+          {data.personalInfo.email && <span>✉ {data.personalInfo.email}</span>}
+          {data.personalInfo.phone && <span>📞 {data.personalInfo.phone}</span>}
+          {data.personalInfo.location && <span>📍 {data.personalInfo.location}</span>}
+        </div>
+      </div>
+      
+      <div className="p-6">
+        {data.personalInfo.summary && (
+          <div className="mb-5">
+            <h4 className="font-bold text-sm uppercase tracking-wider mb-2" style={{ color: primary }}>Executive Summary</h4>
+            <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+          </div>
+        )}
+        
+        {data.experience.length > 0 && (
+          <div className="mb-5">
+            <h4 className="font-bold text-sm uppercase tracking-wider mb-3" style={{ color: primary }}>Professional Experience</h4>
+            {data.experience.map((exp: any) => (
+              <div key={exp.id} className="mb-4 pl-3 border-l-2" style={{ borderColor: primary }}>
+                <div className="flex justify-between">
+                  <p className="font-bold">{exp.position}</p>
+                  <p className="text-slate-500">{exp.startDate} — {exp.endDate || 'Present'}</p>
+                </div>
+                <p className="text-slate-700 font-medium">{exp.company}</p>
+                {exp.description && <p className="text-slate-600 mt-1">{exp.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <div className="grid grid-cols-2 gap-6">
+          {data.education.length > 0 && (
+            <div>
+              <h4 className="font-bold text-sm uppercase tracking-wider mb-2" style={{ color: primary }}>Education</h4>
+              {data.education.map((edu: any) => (
+                <div key={edu.id} className="mb-2">
+                  <p className="font-semibold">{edu.degree}{edu.field && ` in ${edu.field}`}</p>
+                  <p className="text-slate-500">{edu.school} • {edu.endDate}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {data.skills.length > 0 && (
+            <div>
+              <h4 className="font-bold text-sm uppercase tracking-wider mb-2" style={{ color: primary }}>Core Competencies</h4>
+              <div className="flex flex-wrap gap-2">
+                {data.skills.map((skill: any) => (
+                  <span key={skill.id} className="px-2 py-1 text-[10px] rounded" style={{ backgroundColor: `${primary}15`, color: primary }}>{skill.name}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {data.achievements.length > 0 && (
+          <div className="mt-5">
+            <h4 className="font-bold text-sm uppercase tracking-wider mb-2" style={{ color: primary }}>Key Achievements</h4>
+            {data.achievements.map((ach: any) => (
+              <div key={ach.id} className="mb-2 flex items-start gap-2">
+                <span style={{ color: primary }}>★</span>
+                <div>
+                  <span className="font-semibold">{ach.title}</span>
+                  {ach.description && <span className="text-slate-600"> - {ach.description}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Modern Template - Two-column with timeline
+const ModernTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#374151' : accentColor.primary;
+  
+  return (
+    <div className="h-full text-[11px] flex">
+      {/* Left Column - 40% */}
+      <div className="w-[40%] bg-slate-50 p-5">
+        <div className="text-center mb-6">
+          <div className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center text-white text-xl font-bold" style={{ backgroundColor: primary }}>
+            {data.personalInfo.fullName?.split(' ').map((n: string) => n[0]).join('') || 'NA'}
+          </div>
+          <h1 className="font-bold text-lg">{data.personalInfo.fullName || 'Your Name'}</h1>
+          <p className="text-slate-500">{data.experience[0]?.position || 'Professional'}</p>
+        </div>
+        
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-bold text-xs uppercase tracking-wider mb-2" style={{ color: primary }}>Contact</h4>
+            <div className="space-y-1 text-slate-600">
+              {data.personalInfo.email && <p>📧 {data.personalInfo.email}</p>}
+              {data.personalInfo.phone && <p>📱 {data.personalInfo.phone}</p>}
+              {data.personalInfo.location && <p>📍 {data.personalInfo.location}</p>}
+            </div>
+          </div>
+          
+          {data.skills.length > 0 && (
+            <div>
+              <h4 className="font-bold text-xs uppercase tracking-wider mb-2" style={{ color: primary }}>Skills</h4>
+              {data.skills.map((skill: any) => (
+                <div key={skill.id} className="mb-2">
+                  <p className="text-slate-700">{skill.name}</p>
+                  <div className="w-full bg-slate-200 rounded-full h-1.5 mt-1">
+                    <div className="h-1.5 rounded-full" style={{ width: `${skill.proficiency || 80}%`, backgroundColor: primary }}></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {data.education.length > 0 && (
+            <div>
+              <h4 className="font-bold text-xs uppercase tracking-wider mb-2" style={{ color: primary }}>Education</h4>
+              {data.education.map((edu: any) => (
+                <div key={edu.id} className="mb-2">
+                  <p className="font-semibold text-[10px]">{edu.degree}</p>
+                  <p className="text-slate-500 text-[10px]">{edu.school}</p>
+                  <p className="text-slate-400 text-[9px]">{edu.endDate}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Right Column - 60% */}
+      <div className="flex-1 p-5">
+        {data.personalInfo.summary && (
+          <div className="mb-5">
+            <h4 className="font-bold text-sm mb-2" style={{ color: primary }}>About Me</h4>
+            <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+          </div>
+        )}
+        
+        {data.experience.length > 0 && (
+          <div className="mb-5">
+            <h4 className="font-bold text-sm mb-3" style={{ color: primary }}>Work Experience</h4>
+            {data.experience.map((exp: any, idx: number) => (
+              <div key={exp.id} className="relative pl-4 pb-4 border-l-2 border-slate-200">
+                <div className="absolute -left-1.5 top-0 w-3 h-3 rounded-full" style={{ backgroundColor: primary }}></div>
+                <p className="font-bold">{exp.position}</p>
+                <p className="text-slate-500 text-[10px]">{exp.company} | {exp.startDate} - {exp.endDate || 'Present'}</p>
+                {exp.description && <p className="text-slate-600 mt-1">{exp.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {data.projects.length > 0 && (
+          <div className="mb-5">
+            <h4 className="font-bold text-sm mb-2" style={{ color: primary }}>Projects</h4>
+            {data.projects.map((proj: any) => (
+              <div key={proj.id} className="mb-2">
+                <p className="font-semibold">{proj.name}</p>
+                {proj.technologies && <p className="text-slate-400 text-[10px]">{proj.technologies}</p>}
+                {proj.description && <p className="text-slate-600">{proj.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {data.achievements.length > 0 && (
+          <div>
+            <h4 className="font-bold text-sm mb-2" style={{ color: primary }}>Achievements</h4>
+            {data.achievements.map((ach: any) => (
+              <div key={ach.id} className="mb-1 flex items-start gap-2">
+                <span style={{ color: primary }}>•</span>
+                <span>{ach.title}{ach.date && ` (${ach.date})`}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Classic Template - Traditional single-column
+const ClassicTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#1f2937' : accentColor.primary;
+  
+  return (
+    <div className="h-full text-[11px] p-6">
+      {/* Header */}
+      <div className="text-center border-b-2 pb-4 mb-4" style={{ borderColor: primary }}>
+        <h1 className="font-serif font-bold text-2xl" style={{ color: primary }}>{data.personalInfo.fullName || 'Your Name'}</h1>
+        <div className="flex justify-center gap-4 mt-2 text-slate-600">
+          {data.personalInfo.email && <span>{data.personalInfo.email}</span>}
+          {data.personalInfo.phone && <span>• {data.personalInfo.phone}</span>}
+          {data.personalInfo.location && <span>• {data.personalInfo.location}</span>}
+        </div>
+      </div>
+      
+      {data.personalInfo.summary && (
+        <div className="mb-4">
+          <h4 className="font-bold text-sm uppercase border-b mb-2 pb-1" style={{ color: primary, borderColor: `${primary}33` }}>Professional Summary</h4>
+          <p className="text-slate-700 leading-relaxed">{data.personalInfo.summary}</p>
+        </div>
+      )}
+      
+      {data.experience.length > 0 && (
+        <div className="mb-4">
+          <h4 className="font-bold text-sm uppercase border-b mb-2 pb-1" style={{ color: primary, borderColor: `${primary}33` }}>Experience</h4>
+          {data.experience.map((exp: any) => (
+            <div key={exp.id} className="mb-3">
+              <div className="flex justify-between">
+                <p className="font-bold">{exp.position}</p>
+                <p className="text-slate-500 italic">{exp.startDate} - {exp.endDate || 'Present'}</p>
+              </div>
+              <p className="text-slate-600 italic">{exp.company}{exp.location && `, ${exp.location}`}</p>
+              {exp.description && <p className="text-slate-600 mt-1">{exp.description}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {data.education.length > 0 && (
+        <div className="mb-4">
+          <h4 className="font-bold text-sm uppercase border-b mb-2 pb-1" style={{ color: primary, borderColor: `${primary}33` }}>Education</h4>
+          {data.education.map((edu: any) => (
+            <div key={edu.id} className="mb-2 flex justify-between">
+              <div>
+                <p className="font-bold">{edu.degree}{edu.field && ` in ${edu.field}`}</p>
+                <p className="text-slate-600 italic">{edu.school}</p>
+              </div>
+              <p className="text-slate-500 italic">{edu.startDate} - {edu.endDate}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {data.skills.length > 0 && (
+        <div className="mb-4">
+          <h4 className="font-bold text-sm uppercase border-b mb-2 pb-1" style={{ color: primary, borderColor: `${primary}33` }}>Skills</h4>
+          <p className="text-slate-700">{data.skills.map((s: any) => s.name).join(' • ')}</p>
+        </div>
+      )}
+      
+      {data.achievements.length > 0 && (
+        <div className="mb-4">
+          <h4 className="font-bold text-sm uppercase border-b mb-2 pb-1" style={{ color: primary, borderColor: `${primary}33` }}>Achievements</h4>
+          {data.achievements.map((ach: any) => (
+            <div key={ach.id} className="mb-1">
+              <span className="font-semibold">{ach.title}</span>
+              {ach.date && <span className="text-slate-500"> ({ach.date})</span>}
+              {ach.description && <span className="text-slate-600"> - {ach.description}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {data.projects.length > 0 && (
+        <div>
+          <h4 className="font-bold text-sm uppercase border-b mb-2 pb-1" style={{ color: primary, borderColor: `${primary}33` }}>Projects</h4>
+          {data.projects.map((proj: any) => (
+            <div key={proj.id} className="mb-2">
+              <p className="font-semibold">{proj.name}</p>
+              {proj.description && <p className="text-slate-600">{proj.description}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Minimalist Template - Ultra clean and simple
+const MinimalistTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#18181b' : accentColor.primary;
+  
+  return (
+    <div className="h-full text-[11px] p-8 font-light">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="font-light text-3xl tracking-tight text-slate-900">{data.personalInfo.fullName || 'Your Name'}</h1>
+        <p className="text-slate-500 mt-1">{data.experience[0]?.position || 'Professional'}</p>
+        <div className="flex gap-6 mt-3 text-slate-400 text-[10px]">
+          {data.personalInfo.email && <span>{data.personalInfo.email}</span>}
+          {data.personalInfo.phone && <span>{data.personalInfo.phone}</span>}
+          {data.personalInfo.location && <span>{data.personalInfo.location}</span>}
+        </div>
+      </div>
+      
+      {data.personalInfo.summary && (
+        <div className="mb-6">
+          <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+        </div>
+      )}
+      
+      <div className="border-t border-slate-100 pt-4">
+        {data.experience.length > 0 && (
+          <div className="mb-6">
+            <h4 className="text-[10px] uppercase tracking-widest text-slate-400 mb-3">Experience</h4>
+            {data.experience.map((exp: any) => (
+              <div key={exp.id} className="mb-4">
+                <div className="flex justify-between items-baseline">
+                  <p className="font-medium text-slate-800">{exp.position}</p>
+                  <p className="text-slate-400 text-[10px]">{exp.startDate} — {exp.endDate || 'Present'}</p>
+                </div>
+                <p className="text-slate-500">{exp.company}</p>
+                {exp.description && <p className="text-slate-500 mt-1">{exp.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <div className="grid grid-cols-2 gap-8">
+          {data.education.length > 0 && (
+            <div>
+              <h4 className="text-[10px] uppercase tracking-widest text-slate-400 mb-3">Education</h4>
+              {data.education.map((edu: any) => (
+                <div key={edu.id} className="mb-2">
+                  <p className="font-medium text-slate-800">{edu.degree}</p>
+                  <p className="text-slate-500">{edu.school}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {data.skills.length > 0 && (
+            <div>
+              <h4 className="text-[10px] uppercase tracking-widest text-slate-400 mb-3">Skills</h4>
+              <p className="text-slate-600">{data.skills.map((s: any) => s.name).join(', ')}</p>
+            </div>
+          )}
+        </div>
+        
+        {data.achievements.length > 0 && (
+          <div className="mt-6">
+            <h4 className="text-[10px] uppercase tracking-widest text-slate-400 mb-3">Achievements</h4>
+            {data.achievements.map((ach: any) => (
+              <p key={ach.id} className="text-slate-600 mb-1">{ach.title}{ach.description && ` — ${ach.description}`}</p>
+            ))}
+          </div>
+        )}
+        
+        {data.projects.length > 0 && (
+          <div className="mt-6">
+            <h4 className="text-[10px] uppercase tracking-widest text-slate-400 mb-3">Projects</h4>
+            {data.projects.map((proj: any) => (
+              <div key={proj.id} className="mb-2">
+                <p className="font-medium text-slate-800">{proj.name}</p>
+                {proj.description && <p className="text-slate-500">{proj.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Creative Template - Bold colors and unique layout
+const CreativeTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#334155' : accentColor.primary;
+  
+  return (
+    <div className="h-full text-[11px]">
+      {/* Creative Header with diagonal */}
+      <div className="relative h-32 overflow-hidden" style={{ backgroundColor: primary }}>
+        <div className="absolute inset-0 flex items-center px-6">
+          <div className="text-white">
+            <h1 className="font-black text-2xl tracking-tight">{data.personalInfo.fullName || 'Your Name'}</h1>
+            <p className="text-lg opacity-90">{data.experience[0]?.position || 'Creative Professional'}</p>
+          </div>
+        </div>
+        <div className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full" style={{ backgroundColor: `${primary}66` }}></div>
+      </div>
+      
+      {/* Contact Bar */}
+      <div className="flex justify-center gap-6 py-2 bg-slate-100 text-slate-600 text-[10px]">
+        {data.personalInfo.email && <span>✉ {data.personalInfo.email}</span>}
+        {data.personalInfo.phone && <span>📱 {data.personalInfo.phone}</span>}
+        {data.personalInfo.location && <span>📍 {data.personalInfo.location}</span>}
+      </div>
+      
+      <div className="p-5">
+        {data.personalInfo.summary && (
+          <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: `${primary}10` }}>
+            <p className="text-slate-700 leading-relaxed italic">"{data.personalInfo.summary}"</p>
+          </div>
+        )}
+        
+        <div className="grid grid-cols-3 gap-4">
+          {/* Main Content - 2 columns */}
+          <div className="col-span-2 space-y-4">
+            {data.experience.length > 0 && (
+              <div>
+                <h4 className="font-bold text-sm mb-2 flex items-center gap-2" style={{ color: primary }}>
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px]" style={{ backgroundColor: primary }}>💼</span>
+                  Experience
+                </h4>
+                {data.experience.map((exp: any) => (
+                  <div key={exp.id} className="mb-3 pl-8">
+                    <p className="font-bold">{exp.position}</p>
+                    <p className="text-slate-500">{exp.company} • {exp.startDate} - {exp.endDate || 'Present'}</p>
+                    {exp.description && <p className="text-slate-600 mt-1">{exp.description}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {data.projects.length > 0 && (
+              <div>
+                <h4 className="font-bold text-sm mb-2 flex items-center gap-2" style={{ color: primary }}>
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px]" style={{ backgroundColor: primary }}>🚀</span>
+                  Projects
+                </h4>
+                {data.projects.map((proj: any) => (
+                  <div key={proj.id} className="mb-2 pl-8">
+                    <p className="font-semibold">{proj.name}</p>
+                    {proj.description && <p className="text-slate-600">{proj.description}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {/* Sidebar - 1 column */}
+          <div className="space-y-4">
+            {data.skills.length > 0 && (
+              <div className="p-3 rounded-lg bg-slate-50">
+                <h4 className="font-bold text-xs mb-2" style={{ color: primary }}>Skills</h4>
+                <div className="flex flex-wrap gap-1">
+                  {data.skills.map((skill: any) => (
+                    <span key={skill.id} className="px-2 py-0.5 text-[9px] rounded-full text-white" style={{ backgroundColor: primary }}>{skill.name}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {data.education.length > 0 && (
+              <div className="p-3 rounded-lg bg-slate-50">
+                <h4 className="font-bold text-xs mb-2" style={{ color: primary }}>Education</h4>
+                {data.education.map((edu: any) => (
+                  <div key={edu.id} className="mb-2 text-[10px]">
+                    <p className="font-semibold">{edu.degree}</p>
+                    <p className="text-slate-500">{edu.school}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {data.achievements.length > 0 && (
+              <div className="p-3 rounded-lg bg-slate-50">
+                <h4 className="font-bold text-xs mb-2" style={{ color: primary }}>Achievements</h4>
+                {data.achievements.map((ach: any) => (
+                  <p key={ach.id} className="text-[10px] text-slate-600 mb-1">🏆 {ach.title}</p>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Professional Template - Clean corporate style
+const ProfessionalTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#1e3a5f' : accentColor.primary;
+  
+  return (
+    <div className="h-full text-[11px]">
+      {/* Header with line accent */}
+      <div className="p-6 border-b-4" style={{ borderColor: primary }}>
+        <h1 className="font-bold text-2xl text-slate-800">{data.personalInfo.fullName || 'Your Name'}</h1>
+        <p className="text-slate-600 text-sm mt-1">{data.experience[0]?.position || 'Professional'}</p>
+        <div className="flex gap-4 mt-2 text-slate-500 text-[10px]">
+          {data.personalInfo.email && <span>{data.personalInfo.email}</span>}
+          {data.personalInfo.phone && <span>| {data.personalInfo.phone}</span>}
+          {data.personalInfo.location && <span>| {data.personalInfo.location}</span>}
+          {data.personalInfo.linkedin && <span>| {data.personalInfo.linkedin}</span>}
+        </div>
+      </div>
+      
+      <div className="flex">
+        {/* Main Content */}
+        <div className="flex-1 p-5">
+          {data.personalInfo.summary && (
+            <div className="mb-5">
+              <h4 className="font-bold text-xs uppercase tracking-wider mb-2 pb-1 border-b-2" style={{ color: primary, borderColor: primary }}>Profile</h4>
+              <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+            </div>
+          )}
+          
+          {data.experience.length > 0 && (
+            <div className="mb-5">
+              <h4 className="font-bold text-xs uppercase tracking-wider mb-3 pb-1 border-b-2" style={{ color: primary, borderColor: primary }}>Professional Experience</h4>
+              {data.experience.map((exp: any) => (
+                <div key={exp.id} className="mb-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-bold text-slate-800">{exp.position}</p>
+                      <p style={{ color: primary }}>{exp.company}{exp.location && `, ${exp.location}`}</p>
+                    </div>
+                    <p className="text-slate-500 text-[10px] bg-slate-100 px-2 py-0.5 rounded">{exp.startDate} - {exp.endDate || 'Present'}</p>
+                  </div>
+                  {exp.description && <p className="text-slate-600 mt-2">{exp.description}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {data.projects.length > 0 && (
+            <div className="mb-5">
+              <h4 className="font-bold text-xs uppercase tracking-wider mb-2 pb-1 border-b-2" style={{ color: primary, borderColor: primary }}>Key Projects</h4>
+              {data.projects.map((proj: any) => (
+                <div key={proj.id} className="mb-2">
+                  <p className="font-semibold">{proj.name} {proj.technologies && <span className="font-normal text-slate-400">({proj.technologies})</span>}</p>
+                  {proj.description && <p className="text-slate-600">{proj.description}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        {/* Right Sidebar */}
+        <div className="w-[35%] p-5 bg-slate-50">
+          {data.education.length > 0 && (
+            <div className="mb-5">
+              <h4 className="font-bold text-xs uppercase tracking-wider mb-2" style={{ color: primary }}>Education</h4>
+              {data.education.map((edu: any) => (
+                <div key={edu.id} className="mb-3">
+                  <p className="font-semibold text-slate-800">{edu.degree}</p>
+                  {edu.field && <p className="text-slate-600">{edu.field}</p>}
+                  <p className="text-slate-500">{edu.school}</p>
+                  <p className="text-slate-400 text-[10px]">{edu.startDate} - {edu.endDate}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {data.skills.length > 0 && (
+            <div className="mb-5">
+              <h4 className="font-bold text-xs uppercase tracking-wider mb-2" style={{ color: primary }}>Technical Skills</h4>
+              <ul className="space-y-1">
+                {data.skills.map((skill: any) => (
+                  <li key={skill.id} className="flex items-center gap-2 text-slate-600">
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: primary }}></span>
+                    {skill.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {data.achievements.length > 0 && (
+            <div>
+              <h4 className="font-bold text-xs uppercase tracking-wider mb-2" style={{ color: primary }}>Achievements</h4>
+              {data.achievements.map((ach: any) => (
+                <div key={ach.id} className="mb-2">
+                  <p className="font-semibold text-slate-700">{ach.title}</p>
+                  {ach.date && <p className="text-slate-400 text-[10px]">{ach.date}</p>}
+                  {ach.description && <p className="text-slate-500">{ach.description}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Nova Template - ATS-optimized two-column (like Travis Willis)
+const NovaTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#1e3a5f' : accentColor.primary;
+  
+  return (
+    <div className="h-full text-[11px] bg-white">
+      {/* Header */}
+      <div className="text-center py-4 border-b-2" style={{ borderColor: primary }}>
+        <h1 className="font-bold text-2xl uppercase tracking-wider text-slate-800">{data.personalInfo.fullName || 'Your Name'}</h1>
+        <p className="text-slate-600 mt-1">{data.experience[0]?.position || 'Professional Title'}</p>
+        <div className="flex justify-center gap-4 mt-2 text-[10px] text-slate-500">
+          {data.personalInfo.email && <span>{data.personalInfo.email}</span>}
+          {data.personalInfo.phone && <span>{data.personalInfo.phone}</span>}
+          {data.personalInfo.location && <span>{data.personalInfo.location}</span>}
+        </div>
+      </div>
+      
+      <div className="flex p-4">
+        {/* Left - Skills & Education */}
+        <div className="w-[30%] pr-4 border-r border-slate-200">
+          {data.skills.length > 0 && (
+            <div className="mb-4">
+              <h4 className="font-bold text-xs uppercase tracking-wider mb-2" style={{ color: primary }}>Skills</h4>
+              <div className="grid grid-cols-2 gap-1">
+                {data.skills.map((skill: any) => (
+                  <span key={skill.id} className="text-slate-600">{skill.name}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {data.education.length > 0 && (
+            <div>
+              <h4 className="font-bold text-xs uppercase tracking-wider mb-2" style={{ color: primary }}>Education</h4>
+              {data.education.map((edu: any) => (
+                <div key={edu.id} className="mb-2">
+                  <p className="font-semibold text-[10px]">{edu.school}</p>
+                  <p className="text-slate-600 text-[10px]">{edu.degree}</p>
+                  <p className="text-slate-500 text-[9px]">{edu.startDate} — {edu.endDate}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        {/* Right - Main Content */}
+        <div className="flex-1 pl-4">
+          {data.personalInfo.summary && (
+            <div className="mb-4">
+              <h4 className="font-bold text-xs uppercase tracking-wider mb-2" style={{ color: primary }}>Summary</h4>
+              <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+            </div>
+          )}
+          
+          {data.experience.length > 0 && (
+            <div className="mb-4">
+              <h4 className="font-bold text-xs uppercase tracking-wider mb-2" style={{ color: primary }}>Experience</h4>
+              {data.experience.map((exp: any) => (
+                <div key={exp.id} className="mb-3">
+                  <div className="flex justify-between">
+                    <p className="font-bold text-slate-800">{exp.position}</p>
+                    <p className="text-slate-500 text-[10px]">{exp.startDate} — {exp.endDate || 'Present'}</p>
+                  </div>
+                  <p className="text-slate-600">{exp.company}{exp.location && `, ${exp.location}`}</p>
+                  {exp.description && (
+                    <ul className="mt-1 space-y-0.5 text-slate-600">
+                      {exp.description.split('\n').filter(Boolean).map((line: string, i: number) => (
+                        <li key={i}>• {line}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {data.projects.length > 0 && (
+            <div className="mb-4">
+              <h4 className="font-bold text-xs uppercase tracking-wider mb-2" style={{ color: primary }}>Projects</h4>
+              {data.projects.map((proj: any) => (
+                <div key={proj.id} className="mb-2">
+                  <p className="font-semibold">{proj.name}</p>
+                  {proj.description && <p className="text-slate-600">{proj.description}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {data.achievements.length > 0 && (
+            <div>
+              <h4 className="font-bold text-xs uppercase tracking-wider mb-2" style={{ color: primary }}>Achievements</h4>
+              {data.achievements.map((ach: any) => (
+                <p key={ach.id} className="text-slate-600 mb-1">• {ach.title}{ach.description && ` - ${ach.description}`}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Eon Template - ATS with right sidebar (like Matthew Jones)
+const EonTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#374151' : accentColor.primary;
+  
+  return (
+    <div className="h-full text-[11px] flex bg-white">
+      {/* Main Content - Left */}
+      <div className="flex-1 p-5">
+        {/* Name Header */}
+        <div className="mb-4">
+          <h1 className="font-bold text-xl text-slate-800">{data.personalInfo.fullName || 'Your Name'}</h1>
+          <p className="text-sm" style={{ color: primary }}>{data.experience[0]?.position || 'Professional'}</p>
+        </div>
+        
+        {data.personalInfo.summary && (
+          <div className="mb-4">
+            <h4 className="font-bold text-xs text-slate-800 mb-1">• Summary</h4>
+            <p className="text-slate-600 leading-relaxed pl-3">{data.personalInfo.summary}</p>
+          </div>
+        )}
+        
+        {data.experience.length > 0 && (
+          <div className="mb-4">
+            <h4 className="font-bold text-xs text-slate-800 mb-2">• Experience</h4>
+            {data.experience.map((exp: any) => (
+              <div key={exp.id} className="mb-3 pl-3">
+                <div className="flex justify-between">
+                  <p className="font-bold" style={{ color: primary }}>{exp.position}</p>
+                  <p className="text-slate-500 text-[10px]">{exp.startDate} — {exp.endDate || 'Present'}</p>
+                </div>
+                <p className="text-slate-600">{exp.company}</p>
+                {exp.description && (
+                  <ul className="mt-1 text-slate-600 space-y-0.5">
+                    {exp.description.split('\n').filter(Boolean).map((line: string, i: number) => (
+                      <li key={i}>• {line}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {data.education.length > 0 && (
+          <div>
+            <h4 className="font-bold text-xs text-slate-800 mb-2">• Education</h4>
+            {data.education.map((edu: any) => (
+              <div key={edu.id} className="mb-2 pl-3">
+                <p className="font-semibold" style={{ color: primary }}>{edu.degree}{edu.field && `, ${edu.field}`}</p>
+                <p className="text-slate-600">{edu.school}</p>
+                <p className="text-slate-500 text-[10px]">{edu.startDate} — {edu.endDate}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      {/* Right Sidebar */}
+      <div className="w-[30%] p-4 bg-slate-50">
+        {/* Contact */}
+        <div className="mb-4">
+          <h4 className="font-bold text-xs mb-2" style={{ color: primary }}>Details</h4>
+          <div className="space-y-1 text-slate-600 text-[10px]">
+            {data.personalInfo.email && <p>{data.personalInfo.email}</p>}
+            {data.personalInfo.phone && <p>{data.personalInfo.phone}</p>}
+            {data.personalInfo.location && <p>{data.personalInfo.location}</p>}
+          </div>
+        </div>
+        
+        {data.skills.length > 0 && (
+          <div className="mb-4">
+            <h4 className="font-bold text-xs mb-2" style={{ color: primary }}>Skills</h4>
+            <ul className="text-slate-600 space-y-0.5">
+              {data.skills.map((skill: any) => (
+                <li key={skill.id}>{skill.name}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        {data.achievements.length > 0 && (
+          <div>
+            <h4 className="font-bold text-xs mb-2" style={{ color: primary }}>Achievements</h4>
+            {data.achievements.map((ach: any) => (
+              <div key={ach.id} className="mb-2 text-[10px]">
+                <p className="font-semibold text-slate-700">{ach.title}</p>
+                {ach.date && <p className="text-slate-500">{ach.date}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Solstice Template - ATS Clean one-column (like Jessie Smith)
+const SolsticeTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#1e293b' : accentColor.primary;
+  
+  return (
+    <div className="h-full text-[11px] p-5 bg-white">
+      {/* Header */}
+      <div className="mb-4 border-b pb-3" style={{ borderColor: `${primary}33` }}>
+        <h1 className="font-bold text-2xl text-slate-800">{data.personalInfo.fullName || 'Your Name'}</h1>
+        <p className="text-slate-600">{data.experience[0]?.position || 'Professional Title'}</p>
+        <div className="flex flex-wrap gap-3 mt-2 text-[10px] text-slate-500">
+          {data.personalInfo.location && <span>{data.personalInfo.location}</span>}
+          {data.personalInfo.phone && <span>• {data.personalInfo.phone}</span>}
+          {data.personalInfo.email && <span>• {data.personalInfo.email}</span>}
+        </div>
+      </div>
+      
+      {data.personalInfo.summary && (
+        <div className="mb-4">
+          <h4 className="font-bold text-xs mb-1" style={{ color: primary }}>Summary</h4>
+          <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+        </div>
+      )}
+      
+      {data.experience.length > 0 && (
+        <div className="mb-4">
+          <h4 className="font-bold text-xs mb-2" style={{ color: primary }}>Experience</h4>
+          {data.experience.map((exp: any) => (
+            <div key={exp.id} className="mb-3">
+              <div className="flex justify-between">
+                <div>
+                  <p className="font-bold text-slate-800">{exp.position}</p>
+                  <p className="text-slate-600">{exp.company}{exp.location && `, ${exp.location}`}</p>
+                </div>
+                <p className="text-slate-500 text-[10px]">{exp.startDate} — {exp.endDate || 'Present'}</p>
+              </div>
+              {exp.description && (
+                <ul className="mt-1 text-slate-600 space-y-0.5 pl-3">
+                  {exp.description.split('\n').filter(Boolean).map((line: string, i: number) => (
+                    <li key={i}>• {line}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      
+      <div className="grid grid-cols-2 gap-4">
+        {data.education.length > 0 && (
+          <div>
+            <h4 className="font-bold text-xs mb-2" style={{ color: primary }}>Education</h4>
+            {data.education.map((edu: any) => (
+              <div key={edu.id} className="mb-2">
+                <p className="font-semibold text-slate-800">{edu.degree}{edu.field && `, ${edu.field}`}</p>
+                <p className="text-slate-600 text-[10px]">{edu.school}</p>
+                <p className="text-slate-500 text-[10px]">{edu.startDate} — {edu.endDate}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {data.skills.length > 0 && (
+          <div>
+            <h4 className="font-bold text-xs mb-2" style={{ color: primary }}>Skills</h4>
+            <ul className="text-slate-600 space-y-0.5">
+              {data.skills.map((skill: any) => (
+                <li key={skill.id}>• {skill.name}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+      
+      {data.achievements.length > 0 && (
+        <div className="mt-4">
+          <h4 className="font-bold text-xs mb-2" style={{ color: primary }}>Achievements</h4>
+          <ul className="text-slate-600 space-y-1">
+            {data.achievements.map((ach: any) => (
+              <li key={ach.id}>• {ach.title}{ach.description && ` - ${ach.description}`}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      
+      {data.projects.length > 0 && (
+        <div className="mt-4">
+          <h4 className="font-bold text-xs mb-2" style={{ color: primary }}>Projects</h4>
+          {data.projects.map((proj: any) => (
+            <div key={proj.id} className="mb-2">
+              <p className="font-semibold text-slate-800">{proj.name}</p>
+              {proj.technologies && <p className="text-slate-500 text-[10px]">{proj.technologies}</p>}
+              {proj.description && <p className="text-slate-600">{proj.description}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Zenith Template - ATS Minimal with lines
+const ZenithTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#0f172a' : accentColor.primary;
+  
+  return (
+    <div className="h-full text-[11px] p-6 bg-white">
+      {/* Header */}
+      <div className="text-center mb-5">
+        <h1 className="font-light text-3xl tracking-wide text-slate-800">{data.personalInfo.fullName || 'Your Name'}</h1>
+        <div className="w-16 h-0.5 mx-auto my-2" style={{ backgroundColor: primary }}></div>
+        <p className="text-slate-500">{data.experience[0]?.position || 'Professional'}</p>
+        <div className="flex justify-center gap-4 mt-2 text-[10px] text-slate-400">
+          {data.personalInfo.email && <span>{data.personalInfo.email}</span>}
+          {data.personalInfo.phone && <span>|</span>}
+          {data.personalInfo.phone && <span>{data.personalInfo.phone}</span>}
+          {data.personalInfo.location && <span>|</span>}
+          {data.personalInfo.location && <span>{data.personalInfo.location}</span>}
+        </div>
+      </div>
+      
+      {data.personalInfo.summary && (
+        <div className="mb-5 text-center">
+          <p className="text-slate-600 leading-relaxed max-w-[90%] mx-auto">{data.personalInfo.summary}</p>
+        </div>
+      )}
+      
+      {data.experience.length > 0 && (
+        <div className="mb-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex-1 h-px bg-slate-200"></div>
+            <h4 className="font-semibold text-xs uppercase tracking-widest" style={{ color: primary }}>Experience</h4>
+            <div className="flex-1 h-px bg-slate-200"></div>
+          </div>
+          {data.experience.map((exp: any) => (
+            <div key={exp.id} className="mb-3">
+              <div className="flex justify-between">
+                <p className="font-semibold text-slate-800">{exp.position}</p>
+                <p className="text-slate-400 text-[10px]">{exp.startDate} — {exp.endDate || 'Present'}</p>
+              </div>
+              <p className="text-slate-500">{exp.company}</p>
+              {exp.description && <p className="text-slate-600 mt-1">{exp.description}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+      
+      <div className="grid grid-cols-2 gap-6">
+        {data.education.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <h4 className="font-semibold text-xs uppercase tracking-widest" style={{ color: primary }}>Education</h4>
+              <div className="flex-1 h-px bg-slate-200"></div>
+            </div>
+            {data.education.map((edu: any) => (
+              <div key={edu.id} className="mb-2">
+                <p className="font-semibold text-slate-800 text-[10px]">{edu.degree}</p>
+                <p className="text-slate-500 text-[10px]">{edu.school}, {edu.endDate}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {data.skills.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <h4 className="font-semibold text-xs uppercase tracking-widest" style={{ color: primary }}>Skills</h4>
+              <div className="flex-1 h-px bg-slate-200"></div>
+            </div>
+            <p className="text-slate-600">{data.skills.map((s: any) => s.name).join(' • ')}</p>
+          </div>
+        )}
+      </div>
+      
+      {data.achievements.length > 0 && (
+        <div className="mt-5">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex-1 h-px bg-slate-200"></div>
+            <h4 className="font-semibold text-xs uppercase tracking-widest" style={{ color: primary }}>Achievements</h4>
+            <div className="flex-1 h-px bg-slate-200"></div>
+          </div>
+          <div className="text-center text-slate-600">
+            {data.achievements.map((ach: any, i: number) => (
+              <span key={ach.id}>{ach.title}{i < data.achievements.length - 1 ? ' • ' : ''}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {data.projects.length > 0 && (
+        <div className="mt-5">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex-1 h-px bg-slate-200"></div>
+            <h4 className="font-semibold text-xs uppercase tracking-widest" style={{ color: primary }}>Projects</h4>
+            <div className="flex-1 h-px bg-slate-200"></div>
+          </div>
+          {data.projects.map((proj: any) => (
+            <div key={proj.id} className="mb-2 text-center">
+              <p className="font-semibold text-slate-800">{proj.name}</p>
+              {proj.description && <p className="text-slate-600">{proj.description}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Apex Template - ATS Professional with border
+const ApexTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#334155' : accentColor.primary;
+  
+  return (
+    <div className="h-full text-[11px] bg-white border-t-4" style={{ borderColor: primary }}>
+      <div className="p-5">
+        {/* Header */}
+        <div className="flex justify-between items-start mb-4 pb-3 border-b border-slate-200">
+          <div>
+            <h1 className="font-bold text-2xl text-slate-800">{data.personalInfo.fullName || 'Your Name'}</h1>
+            <p className="text-lg text-slate-600">{data.experience[0]?.position || 'Professional'}</p>
+          </div>
+          <div className="text-right text-[10px] text-slate-500">
+            {data.personalInfo.email && <p>{data.personalInfo.email}</p>}
+            {data.personalInfo.phone && <p>{data.personalInfo.phone}</p>}
+            {data.personalInfo.location && <p>{data.personalInfo.location}</p>}
+          </div>
+        </div>
+        
+        {data.personalInfo.summary && (
+          <div className="mb-4 p-3 bg-slate-50 rounded">
+            <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+          </div>
+        )}
+        
+        {data.experience.length > 0 && (
+          <div className="mb-4">
+            <h4 className="font-bold text-sm uppercase mb-2 pb-1 border-b" style={{ color: primary, borderColor: primary }}>Work Experience</h4>
+            {data.experience.map((exp: any) => (
+              <div key={exp.id} className="mb-3">
+                <div className="flex justify-between">
+                  <p className="font-bold text-slate-800">{exp.position}</p>
+                  <p className="text-slate-500">{exp.startDate} - {exp.endDate || 'Present'}</p>
+                </div>
+                <p style={{ color: primary }}>{exp.company}</p>
+                {exp.description && (
+                  <ul className="mt-1 text-slate-600">
+                    {exp.description.split('\n').filter(Boolean).map((line: string, i: number) => (
+                      <li key={i}>• {line}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <div className="grid grid-cols-3 gap-4">
+          {data.education.length > 0 && (
+            <div>
+              <h4 className="font-bold text-xs uppercase mb-2 pb-1 border-b" style={{ color: primary, borderColor: primary }}>Education</h4>
+              {data.education.map((edu: any) => (
+                <div key={edu.id} className="mb-2">
+                  <p className="font-semibold text-[10px]">{edu.degree}</p>
+                  <p className="text-slate-500 text-[10px]">{edu.school}</p>
+                  <p className="text-slate-400 text-[9px]">{edu.endDate}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {data.skills.length > 0 && (
+            <div>
+              <h4 className="font-bold text-xs uppercase mb-2 pb-1 border-b" style={{ color: primary, borderColor: primary }}>Skills</h4>
+              <ul className="text-slate-600 space-y-0.5">
+                {data.skills.slice(0, 8).map((skill: any) => (
+                  <li key={skill.id}>• {skill.name}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {data.achievements.length > 0 && (
+            <div>
+              <h4 className="font-bold text-xs uppercase mb-2 pb-1 border-b" style={{ color: primary, borderColor: primary }}>Achievements</h4>
+              {data.achievements.slice(0, 4).map((ach: any) => (
+                <div key={ach.id} className="mb-1 text-[10px]">
+                  <p className="text-slate-700">• {ach.title}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        {data.projects.length > 0 && (
+          <div className="mt-4">
+            <h4 className="font-bold text-xs uppercase mb-2 pb-1 border-b" style={{ color: primary, borderColor: primary }}>Projects</h4>
+            <div className="grid grid-cols-2 gap-3">
+              {data.projects.map((proj: any) => (
+                <div key={proj.id}>
+                  <p className="font-semibold text-slate-800">{proj.name}</p>
+                  {proj.description && <p className="text-slate-600 text-[10px]">{proj.description}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Horizon Template - ATS Modern with icons
+const HorizonTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#475569' : accentColor.primary;
+  
+  return (
+    <div className="h-full text-[11px] flex bg-white">
+      {/* Left Sidebar */}
+      <div className="w-[32%] p-4" style={{ backgroundColor: `${primary}10` }}>
+        <div className="mb-4">
+          <h1 className="font-bold text-lg text-slate-800 leading-tight">{data.personalInfo.fullName || 'Your Name'}</h1>
+          <p className="text-sm" style={{ color: primary }}>{data.experience[0]?.position || 'Professional'}</p>
+        </div>
+        
+        <div className="mb-4">
+          <h4 className="font-bold text-xs uppercase mb-2" style={{ color: primary }}>Contact</h4>
+          <div className="space-y-1.5 text-[10px] text-slate-600">
+            {data.personalInfo.email && (
+              <div className="flex items-center gap-2">
+                <span>📧</span>
+                <span className="break-all">{data.personalInfo.email}</span>
+              </div>
+            )}
+            {data.personalInfo.phone && (
+              <div className="flex items-center gap-2">
+                <span>📱</span>
+                <span>{data.personalInfo.phone}</span>
+              </div>
+            )}
+            {data.personalInfo.location && (
+              <div className="flex items-center gap-2">
+                <span>📍</span>
+                <span>{data.personalInfo.location}</span>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {data.skills.length > 0 && (
+          <div className="mb-4">
+            <h4 className="font-bold text-xs uppercase mb-2" style={{ color: primary }}>Skills</h4>
+            <div className="space-y-1.5">
+              {data.skills.map((skill: any) => (
+                <div key={skill.id}>
+                  <p className="text-slate-700 text-[10px] mb-0.5">{skill.name}</p>
+                  <div className="h-1 bg-slate-200 rounded-full">
+                    <div className="h-full rounded-full" style={{ width: `${skill.proficiency || 80}%`, backgroundColor: primary }}></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {data.education.length > 0 && (
+          <div>
+            <h4 className="font-bold text-xs uppercase mb-2" style={{ color: primary }}>Education</h4>
+            {data.education.map((edu: any) => (
+              <div key={edu.id} className="mb-2">
+                <p className="font-semibold text-[10px] text-slate-800">{edu.degree}</p>
+                <p className="text-slate-600 text-[10px]">{edu.school}</p>
+                <p className="text-slate-500 text-[9px]">{edu.endDate}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      {/* Right Content */}
+      <div className="flex-1 p-4">
+        {data.personalInfo.summary && (
+          <div className="mb-4">
+            <h4 className="font-bold text-xs uppercase mb-1" style={{ color: primary }}>Profile</h4>
+            <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+          </div>
+        )}
+        
+        {data.experience.length > 0 && (
+          <div className="mb-4">
+            <h4 className="font-bold text-xs uppercase mb-2" style={{ color: primary }}>Experience</h4>
+            {data.experience.map((exp: any) => (
+              <div key={exp.id} className="mb-3 pl-3 border-l-2" style={{ borderColor: primary }}>
+                <div className="flex justify-between">
+                  <p className="font-bold text-slate-800">{exp.position}</p>
+                  <p className="text-slate-500 text-[10px]">{exp.startDate} - {exp.endDate || 'Present'}</p>
+                </div>
+                <p className="text-slate-600">{exp.company}</p>
+                {exp.description && <p className="text-slate-600 mt-1">{exp.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {data.projects.length > 0 && (
+          <div className="mb-4">
+            <h4 className="font-bold text-xs uppercase mb-2" style={{ color: primary }}>Projects</h4>
+            {data.projects.map((proj: any) => (
+              <div key={proj.id} className="mb-2">
+                <p className="font-semibold text-slate-800">{proj.name}</p>
+                {proj.technologies && <p className="text-[10px]" style={{ color: primary }}>{proj.technologies}</p>}
+                {proj.description && <p className="text-slate-600">{proj.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {data.achievements.length > 0 && (
+          <div>
+            <h4 className="font-bold text-xs uppercase mb-2" style={{ color: primary }}>Achievements</h4>
+            {data.achievements.map((ach: any) => (
+              <div key={ach.id} className="mb-1 flex items-start gap-2">
+                <span style={{ color: primary }}>★</span>
+                <span className="text-slate-600">{ach.title}{ach.date && ` (${ach.date})`}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Pinnacle Template - ATS Executive style
+const PinnacleTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#1e293b' : accentColor.primary;
+  
+  return (
+    <div className="h-full text-[11px] bg-white">
+      {/* Header */}
+      <div className="p-5 text-white" style={{ backgroundColor: primary }}>
+        <h1 className="font-bold text-2xl">{data.personalInfo.fullName || 'Your Name'}</h1>
+        <p className="text-lg opacity-90">{data.experience[0]?.position || 'Executive Professional'}</p>
+        <div className="flex gap-4 mt-2 text-sm opacity-75">
+          {data.personalInfo.email && <span>{data.personalInfo.email}</span>}
+          {data.personalInfo.phone && <span>• {data.personalInfo.phone}</span>}
+          {data.personalInfo.location && <span>• {data.personalInfo.location}</span>}
+        </div>
+      </div>
+      
+      <div className="p-5">
+        {data.personalInfo.summary && (
+          <div className="mb-5">
+            <h4 className="font-bold text-xs uppercase tracking-widest mb-2" style={{ color: primary }}>Executive Profile</h4>
+            <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+          </div>
+        )}
+        
+        {data.experience.length > 0 && (
+          <div className="mb-5">
+            <h4 className="font-bold text-xs uppercase tracking-widest mb-3" style={{ color: primary }}>Professional Experience</h4>
+            {data.experience.map((exp: any) => (
+              <div key={exp.id} className="mb-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-bold text-slate-800">{exp.position}</p>
+                    <p style={{ color: primary }}>{exp.company}{exp.location && ` | ${exp.location}`}</p>
+                  </div>
+                  <p className="text-slate-500 text-[10px] bg-slate-100 px-2 py-0.5 rounded">{exp.startDate} - {exp.endDate || 'Present'}</p>
+                </div>
+                {exp.description && (
+                  <ul className="mt-2 text-slate-600 space-y-1">
+                    {exp.description.split('\n').filter(Boolean).map((line: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-slate-400">▸</span>
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <div className="grid grid-cols-3 gap-4">
+          {data.education.length > 0 && (
+            <div>
+              <h4 className="font-bold text-xs uppercase tracking-widest mb-2" style={{ color: primary }}>Education</h4>
+              {data.education.map((edu: any) => (
+                <div key={edu.id} className="mb-2">
+                  <p className="font-semibold text-slate-800 text-[10px]">{edu.degree}{edu.field && `, ${edu.field}`}</p>
+                  <p className="text-slate-500 text-[10px]">{edu.school}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {data.skills.length > 0 && (
+            <div>
+              <h4 className="font-bold text-xs uppercase tracking-widest mb-2" style={{ color: primary }}>Core Competencies</h4>
+              <div className="flex flex-wrap gap-1">
+                {data.skills.map((skill: any) => (
+                  <span key={skill.id} className="px-2 py-0.5 text-[9px] rounded" style={{ backgroundColor: `${primary}15`, color: primary }}>{skill.name}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {data.achievements.length > 0 && (
+            <div>
+              <h4 className="font-bold text-xs uppercase tracking-widest mb-2" style={{ color: primary }}>Key Achievements</h4>
+              {data.achievements.map((ach: any) => (
+                <p key={ach.id} className="text-slate-600 text-[10px] mb-1">★ {ach.title}</p>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        {data.projects.length > 0 && (
+          <div className="mt-4">
+            <h4 className="font-bold text-xs uppercase tracking-widest mb-2" style={{ color: primary }}>Notable Projects</h4>
+            <div className="grid grid-cols-2 gap-3">
+              {data.projects.map((proj: any) => (
+                <div key={proj.id} className="p-2 bg-slate-50 rounded">
+                  <p className="font-semibold text-slate-800">{proj.name}</p>
+                  {proj.description && <p className="text-slate-600 text-[10px]">{proj.description}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Vertex Template - ATS Bold style
+const VertexTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochrome }) => {
+  const primary = isMonochrome ? '#334155' : accentColor.primary;
+  
+  return (
+    <div className="h-full text-[11px] bg-white">
+      {/* Header with accent */}
+      <div className="flex">
+        <div className="w-2" style={{ backgroundColor: primary }}></div>
+        <div className="flex-1 p-4">
+          <h1 className="font-black text-2xl text-slate-800">{data.personalInfo.fullName || 'Your Name'}</h1>
+          <p className="text-lg font-medium" style={{ color: primary }}>{data.experience[0]?.position || 'Professional'}</p>
+          <div className="flex flex-wrap gap-3 mt-2 text-[10px] text-slate-500">
+            {data.personalInfo.email && <span>✉ {data.personalInfo.email}</span>}
+            {data.personalInfo.phone && <span>📞 {data.personalInfo.phone}</span>}
+            {data.personalInfo.location && <span>📍 {data.personalInfo.location}</span>}
+          </div>
+        </div>
+      </div>
+      
+      <div className="p-4">
+        {data.personalInfo.summary && (
+          <div className="mb-4 p-3 border-l-4" style={{ borderColor: primary, backgroundColor: `${primary}05` }}>
+            <p className="text-slate-600 leading-relaxed">{data.personalInfo.summary}</p>
+          </div>
+        )}
+        
+        <div className="grid grid-cols-3 gap-4">
+          {/* Main Content - 2 cols */}
+          <div className="col-span-2">
+            {data.experience.length > 0 && (
+              <div className="mb-4">
+                <h4 className="font-black text-xs uppercase mb-2" style={{ color: primary }}>Experience</h4>
+                {data.experience.map((exp: any) => (
+                  <div key={exp.id} className="mb-3">
+                    <div className="flex justify-between">
+                      <p className="font-bold text-slate-800">{exp.position}</p>
+                      <p className="text-slate-400 text-[10px]">{exp.startDate} - {exp.endDate || 'Present'}</p>
+                    </div>
+                    <p className="font-medium" style={{ color: primary }}>{exp.company}</p>
+                    {exp.description && <p className="text-slate-600 mt-1">{exp.description}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {data.projects.length > 0 && (
+              <div>
+                <h4 className="font-black text-xs uppercase mb-2" style={{ color: primary }}>Projects</h4>
+                {data.projects.map((proj: any) => (
+                  <div key={proj.id} className="mb-2">
+                    <p className="font-bold text-slate-800">{proj.name}</p>
+                    {proj.technologies && <p className="text-[10px]" style={{ color: primary }}>{proj.technologies}</p>}
+                    {proj.description && <p className="text-slate-600">{proj.description}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {/* Sidebar - 1 col */}
+          <div className="space-y-4">
+            {data.skills.length > 0 && (
+              <div>
+                <h4 className="font-black text-xs uppercase mb-2" style={{ color: primary }}>Skills</h4>
+                <div className="space-y-1">
+                  {data.skills.map((skill: any) => (
+                    <div key={skill.id} className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: primary }}></div>
+                      <span className="text-slate-600">{skill.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {data.education.length > 0 && (
+              <div>
+                <h4 className="font-black text-xs uppercase mb-2" style={{ color: primary }}>Education</h4>
+                {data.education.map((edu: any) => (
+                  <div key={edu.id} className="mb-2">
+                    <p className="font-semibold text-slate-800 text-[10px]">{edu.degree}</p>
+                    <p className="text-slate-500 text-[10px]">{edu.school}</p>
+                    <p className="text-slate-400 text-[9px]">{edu.endDate}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {data.achievements.length > 0 && (
+              <div>
+                <h4 className="font-black text-xs uppercase mb-2" style={{ color: primary }}>Achievements</h4>
+                {data.achievements.map((ach: any) => (
+                  <div key={ach.id} className="mb-1.5">
+                    <p className="font-semibold text-slate-700 text-[10px]">{ach.title}</p>
+                    {ach.date && <p className="text-slate-400 text-[9px]">{ach.date}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

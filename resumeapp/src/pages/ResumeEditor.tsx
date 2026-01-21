@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { resumeService } from '@/services/resumeService';
 import { defaultResume } from '@/constants/templates';
-import { Save, ArrowLeft } from 'lucide-react';
+import { Save, ArrowLeft, Sparkles } from 'lucide-react';
+import PDFExport from '@/components/resume/PDFExport';
+import ProfilePhotoUpload from '@/components/resume/ProfilePhotoUpload';
+import AISuggestions from '@/components/ai/AISuggestions';
 
 interface Resume {
   _id: string;
@@ -28,6 +31,7 @@ export default function ResumeEditor() {
   const navigate = useNavigate();
   const [resume, setResume] = useState<Resume | null>(null);
   const [loading, setLoading] = useState(true);
+  const resumePreviewRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [atsScore, setAtsScore] = useState(0);
@@ -182,14 +186,20 @@ export default function ResumeEditor() {
               <p className="text-gray-600 dark:text-gray-400">Edit your resume</p>
             </div>
           </div>
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600"
-          >
-            <Save size={20} />
-            {saving ? 'Saving...' : 'Save Resume'}
-          </Button>
+          <div className="flex items-center gap-3">
+            <PDFExport 
+              resumeRef={resumePreviewRef} 
+              resumeName={resume.title} 
+            />
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600"
+            >
+              <Save size={20} />
+              {saving ? 'Saving...' : 'Save Resume'}
+            </Button>
+          </div>
         </div>
 
         {/* Error Message */}
@@ -239,6 +249,15 @@ export default function ResumeEditor() {
                 <CardTitle>Personal Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Profile Photo */}
+                <div className="flex justify-center mb-6">
+                  <ProfilePhotoUpload
+                    currentPhoto={resume.personalInfo.profileImage || ''}
+                    onPhotoChange={(photoUrl) => handlePersonalInfoChange('profileImage', photoUrl)}
+                    userName={resume.personalInfo.fullName || 'User'}
+                  />
+                </div>
+                
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium">Full Name</label>
@@ -288,6 +307,14 @@ export default function ResumeEditor() {
                     className="mt-1"
                   />
                 </div>
+                
+                {/* AI Suggestions for Summary */}
+                <AISuggestions
+                  section="summary"
+                  currentContent={resume.personalInfo.professionalSummary || ''}
+                  jobTitle={resume.title}
+                  onApplySuggestion={(suggestion) => handlePersonalInfoChange('professionalSummary', suggestion)}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -304,6 +331,12 @@ export default function ResumeEditor() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* AI Suggestions for Experience */}
+                <AISuggestions
+                  section="experience"
+                  jobTitle={resume.title}
+                />
+                
                 {resume.experience.map((exp, index) => (
                   <div key={index} className="space-y-4 p-4 border rounded-lg">
                     <div className="grid md:grid-cols-2 gap-4">

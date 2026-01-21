@@ -76,6 +76,8 @@ export interface ResumeData {
 interface ResumeContextType {
   resumeData: ResumeData;
   updatePersonalInfo: (info: Partial<PersonalInfo>) => void;
+  loadResumeData: (data: Partial<ResumeData>) => void;
+  clearResumeData: () => void;
   addEducation: () => void;
   updateEducation: (id: string, data: Partial<Education>) => void;
   removeEducation: (id: string) => void;
@@ -130,6 +132,25 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       ...prev,
       personalInfo: { ...prev.personalInfo, ...info }
     }));
+  };
+
+  // Load bulk resume data (for importing uploaded resumes)
+  const loadResumeData = (data: Partial<ResumeData>) => {
+    setResumeData(prev => ({
+      ...prev,
+      personalInfo: data.personalInfo ? { ...prev.personalInfo, ...data.personalInfo } : prev.personalInfo,
+      education: data.education && data.education.length > 0 ? data.education : prev.education,
+      experience: data.experience && data.experience.length > 0 ? data.experience : prev.experience,
+      projects: data.projects && data.projects.length > 0 ? data.projects : prev.projects,
+      achievements: data.achievements && data.achievements.length > 0 ? data.achievements : prev.achievements,
+      skills: data.skills && data.skills.length > 0 ? data.skills : prev.skills,
+      customSections: data.customSections && data.customSections.length > 0 ? data.customSections : prev.customSections,
+    }));
+  };
+
+  // Clear all resume data (start fresh)
+  const clearResumeData = () => {
+    setResumeData(defaultResumeData);
   };
 
   const addEducation = () => {
@@ -362,6 +383,8 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     <ResumeContext.Provider value={{
       resumeData,
       updatePersonalInfo,
+      loadResumeData,
+      clearResumeData,
       addEducation,
       updateEducation,
       removeEducation,
