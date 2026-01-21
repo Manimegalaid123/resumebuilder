@@ -56,6 +56,29 @@ export interface CustomSectionItem {
   content: string;
 }
 
+export interface Publication {
+  id: string;
+  title: string;
+  publisher: string;
+  date: string;
+  link: string;
+  description: string;
+}
+
+export interface Certification {
+  id: string;
+  name: string;
+  issuer: string;
+  date: string;
+  link: string;
+}
+
+export interface Language {
+  id: string;
+  language: string;
+  proficiency: string;
+}
+
 export interface CustomSection {
   id: string;
   title: string;
@@ -69,8 +92,11 @@ export interface ResumeData {
   projects: Project[];
   achievements: Achievement[];
   skills: Skill[];
+  publications: Publication[];
+  certifications: Certification[];
+  languages: Language[];
   customSections: CustomSection[];
-  template: 'classic' | 'modern' | 'creative';
+  template: 'classic' | 'modern' | 'creative' | 'professional' | 'academic';
 }
 
 interface ResumeContextType {
@@ -97,7 +123,16 @@ interface ResumeContextType {
   addCustomSectionItem: (sectionId: string) => void;
   updateCustomSectionItem: (sectionId: string, itemId: string, content: string) => void;
   removeCustomSectionItem: (sectionId: string, itemId: string) => void;
-  setTemplate: (template: 'classic' | 'modern' | 'creative') => void;
+  addPublication: () => void;
+  updatePublication: (id: string, data: Partial<Publication>) => void;
+  removePublication: (id: string) => void;
+  addCertification: () => void;
+  updateCertification: (id: string, data: Partial<Certification>) => void;
+  removeCertification: (id: string) => void;
+  addLanguage: () => void;
+  updateLanguage: (id: string, data: Partial<Language>) => void;
+  removeLanguage: (id: string) => void;
+  setTemplate: (template: 'classic' | 'modern' | 'creative' | 'professional' | 'academic') => void;
 }
 
 const defaultResumeData: ResumeData = {
@@ -115,6 +150,9 @@ const defaultResumeData: ResumeData = {
   achievements: [],
   skills: [],
   customSections: [],
+  publications: [],
+  certifications: [],
+  languages: [],
   template: 'classic',
 };
 
@@ -151,7 +189,7 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const updateEducation = (id: string, data: Partial<Education>) => {
     setResumeData(prev => ({
       ...prev,
-      education: prev.education.map(edu => 
+      education: prev.education.map(edu =>
         edu.id === id ? { ...edu, ...data } : edu
       )
     }));
@@ -184,7 +222,7 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const updateExperience = (id: string, data: Partial<Experience>) => {
     setResumeData(prev => ({
       ...prev,
-      experience: prev.experience.map(exp => 
+      experience: prev.experience.map(exp =>
         exp.id === id ? { ...exp, ...data } : exp
       )
     }));
@@ -214,7 +252,7 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const updateProject = (id: string, data: Partial<Project>) => {
     setResumeData(prev => ({
       ...prev,
-      projects: prev.projects.map(proj => 
+      projects: prev.projects.map(proj =>
         proj.id === id ? { ...proj, ...data } : proj
       )
     }));
@@ -243,7 +281,7 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const updateAchievement = (id: string, data: Partial<Achievement>) => {
     setResumeData(prev => ({
       ...prev,
-      achievements: prev.achievements.map(ach => 
+      achievements: prev.achievements.map(ach =>
         ach.id === id ? { ...ach, ...data } : ach
       )
     }));
@@ -271,7 +309,7 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const updateSkill = (id: string, data: Partial<Skill>) => {
     setResumeData(prev => ({
       ...prev,
-      skills: prev.skills.map(skill => 
+      skills: prev.skills.map(skill =>
         skill.id === id ? { ...skill, ...data } : skill
       )
     }));
@@ -333,11 +371,11 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       customSections: prev.customSections.map(section =>
         section.id === sectionId
           ? {
-              ...section,
-              items: section.items.map(item =>
-                item.id === itemId ? { ...item, content } : item
-              )
-            }
+            ...section,
+            items: section.items.map(item =>
+              item.id === itemId ? { ...item, content } : item
+            )
+          }
           : section
       )
     }));
@@ -354,8 +392,97 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }));
   };
 
-  const setTemplate = (template: 'classic' | 'modern' | 'creative') => {
+  const setTemplate = (template: 'classic' | 'modern' | 'creative' | 'professional' | 'academic') => {
     setResumeData(prev => ({ ...prev, template }));
+  };
+
+  const addPublication = () => {
+    const newPub: Publication = {
+      id: generateId(),
+      title: '',
+      publisher: '',
+      date: '',
+      link: '',
+      description: '',
+    };
+    setResumeData(prev => ({
+      ...prev,
+      publications: [...prev.publications, newPub]
+    }));
+  };
+
+  const updatePublication = (id: string, data: Partial<Publication>) => {
+    setResumeData(prev => ({
+      ...prev,
+      publications: prev.publications.map(pub =>
+        pub.id === id ? { ...pub, ...data } : pub
+      )
+    }));
+  };
+
+  const removePublication = (id: string) => {
+    setResumeData(prev => ({
+      ...prev,
+      publications: prev.publications.filter(pub => pub.id !== id)
+    }));
+  };
+
+  const addCertification = () => {
+    const newCert: Certification = {
+      id: generateId(),
+      name: '',
+      issuer: '',
+      date: '',
+      link: '',
+    };
+    setResumeData(prev => ({
+      ...prev,
+      certifications: [...prev.certifications, newCert]
+    }));
+  };
+
+  const updateCertification = (id: string, data: Partial<Certification>) => {
+    setResumeData(prev => ({
+      ...prev,
+      certifications: prev.certifications.map(cert =>
+        cert.id === id ? { ...cert, ...data } : cert
+      )
+    }));
+  };
+
+  const removeCertification = (id: string) => {
+    setResumeData(prev => ({
+      ...prev,
+      certifications: prev.certifications.filter(cert => cert.id !== id)
+    }));
+  };
+
+  const addLanguage = () => {
+    const newLang: Language = {
+      id: generateId(),
+      language: '',
+      proficiency: 'Intermediate',
+    };
+    setResumeData(prev => ({
+      ...prev,
+      languages: [...prev.languages, newLang]
+    }));
+  };
+
+  const updateLanguage = (id: string, data: Partial<Language>) => {
+    setResumeData(prev => ({
+      ...prev,
+      languages: prev.languages.map(lang =>
+        lang.id === id ? { ...lang, ...data } : lang
+      )
+    }));
+  };
+
+  const removeLanguage = (id: string) => {
+    setResumeData(prev => ({
+      ...prev,
+      languages: prev.languages.filter(lang => lang.id !== id)
+    }));
   };
 
   return (
@@ -383,6 +510,15 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       addCustomSectionItem,
       updateCustomSectionItem,
       removeCustomSectionItem,
+      addPublication,
+      updatePublication,
+      removePublication,
+      addCertification,
+      updateCertification,
+      removeCertification,
+      addLanguage,
+      updateLanguage,
+      removeLanguage,
       setTemplate,
     }}>
       {children}

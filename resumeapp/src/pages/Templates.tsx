@@ -1,13 +1,48 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  LayoutGrid, Star, Code, Image, Briefcase, Award, 
+import {
+  LayoutGrid, Star, Code, Image, Briefcase, Award,
   Mail, Phone, MapPin, CheckCircle, Search, Columns
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import ProfessionalTemplate from '@/components/templates/ProfessionalTemplate';
+import AcademicTemplate from '@/components/templates/AcademicTemplate';
+
+const sampleData = {
+  personalInfo: {
+    fullName: 'ALEXANDER SMITH',
+    email: 'alex.smith@example.com',
+    phone: '(555) 123-4567',
+    location: 'San Francisco, CA',
+    linkedin: 'linkedin.com/in/alexsmith',
+    summary: 'Experienced professional with a proven track record in project management and strategic planning. Dedicated to driving efficiency and growth.'
+  },
+  experience: [
+    { id: '1', position: 'Senior Project Manager', company: 'Tech Solutions Inc.', location: 'San Francisco', startDate: '2020', endDate: 'Present', description: 'Led cross-functional teams to deliver high-impact projects.\nIncreased operational efficiency by 25%.' },
+    { id: '2', position: 'Business Analyst', company: 'Global Corp', location: 'New York', startDate: '2017', endDate: '2020', description: 'Conducted market analysis and identified key growth opportunities.' }
+  ],
+  education: [
+    { id: '1', school: 'University of California', degree: 'MBA', startDate: '2015', endDate: '2017' }
+  ],
+  skills: [
+    { id: '1', name: 'Project Management' }, { id: '2', name: 'Strategic Planning' }, { id: '3', name: 'Leadership' }
+  ],
+  projects: [],
+  achievements: [],
+  publications: [
+    { id: '1', title: 'Modern Project Management', publisher: 'PM Journal', date: '2023', description: 'Analysis of agile methodologies.' }
+  ],
+  certifications: [],
+  languages: [],
+  customSections: []
+};
+const sampleAccent = { id: 'slate', name: 'Slate', primary: '#334155', secondary: '#f1f5f9' };
+
+const ProfessionalPreview = () => <div className="h-full bg-white overflow-hidden"><ProfessionalTemplate data={sampleData} accentColor={sampleAccent} isMonochrome={false} /></div>;
+const AcademicPreview = () => <div className="h-full bg-white overflow-hidden"><AcademicTemplate data={sampleData} accentColor={sampleAccent} isMonochrome={false} /></div>;
 
 const categories = [
   { id: 'all', name: 'All Templates', icon: LayoutGrid },
@@ -26,7 +61,7 @@ const KellyTemplate = () => (
       <h3 className="font-bold text-[12px] text-slate-800 leading-tight">KELLY</h3>
       <h3 className="font-bold text-[12px] text-slate-800 mb-1">BLACKWELL</h3>
       <p className="text-slate-600 text-[8px] mb-3">Administrative Assistant</p>
-      
+
       <div className="mb-3">
         <h4 className="font-bold text-[8px] text-slate-700 border-b border-slate-300 pb-1 mb-2">DETAILS</h4>
         <div className="space-y-1 text-[7px] text-slate-600">
@@ -44,8 +79,8 @@ const KellyTemplate = () => (
           </div>
         </div>
       </div>
-      
-      <div>
+
+      <div className="mb-3">
         <h4 className="font-bold text-[8px] text-slate-700 border-b border-slate-300 pb-1 mb-2">SKILLS</h4>
         <ul className="space-y-0.5 text-[7px] text-slate-600">
           <li>• Analytical Thinking</li>
@@ -53,6 +88,16 @@ const KellyTemplate = () => (
           <li>• Organization</li>
           <li>• Strong Communication</li>
           <li>• MS Office Suite</li>
+          <li>• Time Management</li>
+          <li>• Problem Solving</li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 className="font-bold text-[8px] text-slate-700 border-b border-slate-300 pb-1 mb-2">CERTIFICATIONS</h4>
+        <ul className="space-y-1 text-[7px] text-slate-600">
+          <li>• Microsoft Office Specialist</li>
+          <li>• Project Management</li>
         </ul>
       </div>
     </div>
@@ -60,11 +105,12 @@ const KellyTemplate = () => (
       <div className="mb-3">
         <h4 className="font-bold text-[9px] text-slate-800 border-b border-slate-300 pb-1 mb-1.5">SUMMARY</h4>
         <p className="text-slate-600 leading-relaxed">
-          Administrative assistant with 9+ years of experience organizing presentations, preparing reports, 
-          and maintaining confidentiality. Expertise in Microsoft Excel.
+          Administrative assistant with 9+ years of experience organizing presentations, preparing reports,
+          and maintaining confidentiality. Expertise in Microsoft Excel and office management. Proven track
+          record of improving office efficiency and supporting executive teams.
         </p>
       </div>
-      
+
       <div className="mb-3">
         <h4 className="font-bold text-[9px] text-slate-800 border-b border-slate-300 pb-1 mb-1.5">EXPERIENCE</h4>
         <div className="mb-2">
@@ -76,17 +122,34 @@ const KellyTemplate = () => (
           <ul className="text-slate-600 space-y-0.5 mt-0.5">
             <li>• Schedule and coordinate meetings for executives</li>
             <li>• Trained 2 assistants during company expansion</li>
+            <li>• Managed office supplies and vendor relationships</li>
+            <li>• Improved filing system efficiency by 30%</li>
           </ul>
         </div>
-        <div>
+        <div className="mb-2">
           <div className="flex justify-between items-start">
             <p className="font-semibold text-[8px]">Secretary</p>
             <p className="text-[7px] text-slate-500">Jun 2016 — Aug 2017</p>
           </div>
           <p className="text-blue-600 text-[7px]">Bright Spot Ltd., Boston</p>
+          <ul className="text-slate-600 space-y-0.5 mt-0.5">
+            <li>• Handled correspondence and phone calls</li>
+            <li>• Organized company events and meetings</li>
+          </ul>
+        </div>
+        <div>
+          <div className="flex justify-between items-start">
+            <p className="font-semibold text-[8px]">Office Assistant</p>
+            <p className="text-[7px] text-slate-500">Jan 2015 — May 2016</p>
+          </div>
+          <p className="text-blue-600 text-[7px]">Corporate Solutions Inc.</p>
+          <ul className="text-slate-600 space-y-0.5 mt-0.5">
+            <li>• Provided administrative support to team</li>
+            <li>• Data entry and document management</li>
+          </ul>
         </div>
       </div>
-      
+
       <div>
         <h4 className="font-bold text-[9px] text-slate-800 border-b border-slate-300 pb-1 mb-1.5">EDUCATION</h4>
         <p className="font-semibold text-[8px]">Bachelor of Arts, Finance</p>
@@ -105,39 +168,59 @@ const HowardTemplate = () => (
         San Francisco, CA | howard.jones@gmail.com | (415) 555-2671
       </p>
     </div>
-    
+
     <div className="mb-3">
       <h4 className="font-bold text-[9px] text-slate-700 text-center border-b border-slate-200 pb-1 mb-1.5">SUMMARY</h4>
       <p className="text-slate-600 leading-relaxed text-center">
-        Experienced Lawyer with passion for justice. Skilled in public speaking with proven track record 
-        of achieving favorable outcomes. Adept in preparing trials and presenting cases.
+        Experienced Lawyer with 15+ years passion for justice. Skilled in public speaking with proven track record
+        of achieving favorable outcomes. Adept in preparing trials and presenting cases. Specialized in corporate
+        law, contract negotiations, and regulatory compliance.
       </p>
     </div>
-    
+
     <div className="mb-3">
       <h4 className="font-bold text-[9px] text-slate-700 text-center border-b border-slate-200 pb-1 mb-1.5">EXPERIENCE</h4>
       <div className="mb-2">
         <div className="flex justify-between">
-          <p className="font-semibold text-[8px]">Lawyer, Madison and Fletcher Attorneys</p>
-          <p className="text-[7px] text-slate-500">Dec 2010 — Aug 2018</p>
+          <p className="font-semibold text-[8px]">Senior Partner, Madison and Fletcher Attorneys</p>
+          <p className="text-[7px] text-slate-500">Dec 2010 — Present</p>
         </div>
         <ul className="text-slate-600 space-y-0.5 mt-0.5">
           <li>• Prepared legal documents and presented cases</li>
           <li>• Filed briefings and collected evidence</li>
+          <li>• Led team of 5 junior attorneys</li>
+          <li>• Won 85% of cases representing clients</li>
+        </ul>
+      </div>
+      <div className="mb-2">
+        <div className="flex justify-between">
+          <p className="font-semibold text-[8px]">Associate Attorney, Roberts & Clark</p>
+          <p className="text-[7px] text-slate-500">Jun 2006 — Nov 2010</p>
+        </div>
+        <ul className="text-slate-600 space-y-0.5 mt-0.5">
+          <li>• Handled corporate litigation cases</li>
+          <li>• Conducted legal research and analysis</li>
         </ul>
       </div>
     </div>
-    
-    <div className="grid grid-cols-2 gap-3">
+
+    <div className="grid grid-cols-2 gap-3 mb-3">
       <div>
         <h4 className="font-bold text-[9px] text-slate-700 border-b border-slate-200 pb-1 mb-1.5">EDUCATION</h4>
-        <p className="font-semibold text-[8px]">New York Law School</p>
-        <p className="text-[7px] text-slate-500">Juris Doctor • 2003 — 2006</p>
+        <p className="font-semibold text-[8px]">Juris Doctor</p>
+        <p className="text-[7px] text-slate-500">New York Law School • 2003 — 2006</p>
+        <p className="font-semibold text-[8px] mt-1">Bachelor of Arts</p>
+        <p className="text-[7px] text-slate-500">UC Berkeley • 1999 — 2003</p>
       </div>
       <div>
         <h4 className="font-bold text-[9px] text-slate-700 border-b border-slate-200 pb-1 mb-1.5">SKILLS</h4>
-        <p className="text-[7px] text-slate-600">Regulatory Compliance • Contract Negotiation • Family Law • Mediation</p>
+        <p className="text-[7px] text-slate-600">Regulatory Compliance • Contract Negotiation • Family Law • Mediation • Corporate Law • Litigation</p>
       </div>
+    </div>
+
+    <div>
+      <h4 className="font-bold text-[9px] text-slate-700 text-center border-b border-slate-200 pb-1 mb-1.5">BAR ADMISSIONS</h4>
+      <p className="text-[7px] text-slate-600 text-center">California State Bar (2006) • New York State Bar (2007)</p>
     </div>
   </div>
 );
@@ -150,7 +233,7 @@ const SamanthaTemplate = () => (
       </div>
       <h3 className="text-center font-bold text-[10px] mb-0.5">Samantha Williams</h3>
       <p className="text-center text-blue-200 text-[8px] mb-2">Senior Analyst</p>
-      
+
       <div className="space-y-1 text-[7px] mb-3">
         <div className="flex items-center gap-1">
           <MapPin className="w-2.5 h-2.5" />
@@ -165,11 +248,11 @@ const SamanthaTemplate = () => (
           <span>(555) 789-1234</span>
         </div>
       </div>
-      
-      <div>
+
+      <div className="mb-3">
         <h4 className="font-bold text-[8px] border-b border-blue-400 pb-1 mb-1.5">SKILLS</h4>
         <ul className="space-y-0.5">
-          {['Project Management', 'Data Analysis', 'SQL & Excel', 'Business Intelligence'].map(skill => (
+          {['Project Management', 'Data Analysis', 'SQL & Excel', 'Business Intelligence', 'Python', 'Tableau', 'Leadership'].map(skill => (
             <li key={skill} className="flex items-center gap-1 text-[7px]">
               <div className="w-1 h-1 rounded-full bg-blue-300"></div>
               {skill}
@@ -177,16 +260,22 @@ const SamanthaTemplate = () => (
           ))}
         </ul>
       </div>
+
+      <div>
+        <h4 className="font-bold text-[8px] border-b border-blue-400 pb-1 mb-1.5">EDUCATION</h4>
+        <p className="font-semibold text-[7px]">B.S. Economics</p>
+        <p className="text-[6px] text-blue-100">NYU • 2013 — 2017</p>
+      </div>
     </div>
     <div className="flex-1 p-3">
       <div className="mb-3">
         <h4 className="font-bold text-[9px] text-slate-800 border-b border-slate-300 pb-1 mb-1.5">SUMMARY</h4>
         <p className="text-slate-600 leading-relaxed">
-          Senior Analyst with 5+ years of experience in data analysis and business intelligence. 
+          Senior Analyst with 5+ years of experience in data analysis and business intelligence.
           Skilled in driving operational efficiency and data-driven strategies.
         </p>
       </div>
-      
+
       <div className="mb-3">
         <h4 className="font-bold text-[9px] text-slate-800 border-b border-slate-300 pb-1 mb-1.5">EXPERIENCE</h4>
         <div className="mb-2">
@@ -200,19 +289,32 @@ const SamanthaTemplate = () => (
             <li>• Conduct market analysis, resulting in 15% increase</li>
           </ul>
         </div>
-        <div>
+        <div className="mb-2">
           <div className="flex justify-between items-start">
             <p className="font-semibold text-[8px]">Business Analyst</p>
             <p className="text-[7px] text-slate-500">Aug 2017 — May 2021</p>
           </div>
           <p className="text-blue-600 text-[7px]">Willow & Wren Ltd.</p>
+          <ul className="text-slate-600 space-y-0.5 mt-0.5">
+            <li>• Supported data-driven decision making</li>
+            <li>• Created dashboards and reports</li>
+          </ul>
+        </div>
+        <div>
+          <div className="flex justify-between items-start">
+            <p className="font-semibold text-[8px]">Junior Analyst</p>
+            <p className="text-[7px] text-slate-500">Jun 2016 — Jul 2017</p>
+          </div>
+          <p className="text-blue-600 text-[7px]">DataCorp Inc.</p>
+          <ul className="text-slate-600 space-y-0.5 mt-0.5">
+            <li>• Assisted with market research</li>
+          </ul>
         </div>
       </div>
-      
+
       <div>
-        <h4 className="font-bold text-[9px] text-slate-800 border-b border-slate-300 pb-1 mb-1.5">EDUCATION</h4>
-        <p className="font-semibold text-[8px]">New York University</p>
-        <p className="text-slate-500 text-[7px]">B.S. Economics • 2013 — 2017</p>
+        <h4 className="font-bold text-[9px] text-slate-800 border-b border-slate-300 pb-1 mb-1.5">CERTIFICATIONS</h4>
+        <p className="text-[7px] text-slate-600">• Certified Analytics Professional<br />• SQL for Data Science</p>
       </div>
     </div>
   </div>
@@ -231,11 +333,11 @@ const JessieTemplate = () => (
       <div className="mb-3">
         <h4 className="font-bold text-[9px] text-violet-600 border-b border-violet-200 pb-1 mb-1.5">SUMMARY</h4>
         <p className="text-slate-600 leading-relaxed">
-          HR generalist with 8 years of experience in hiring, training, and employee management. 
+          HR generalist with 8 years of experience in hiring, training, and employee management.
           Worked with labor unions to negotiate compensation packages.
         </p>
       </div>
-      
+
       <div className="mb-3">
         <h4 className="font-bold text-[9px] text-violet-600 border-b border-violet-200 pb-1 mb-1.5">EXPERIENCE</h4>
         <div className="mb-2">
@@ -247,10 +349,22 @@ const JessieTemplate = () => (
           <ul className="text-slate-600 space-y-0.5 mt-0.5">
             <li>• Implement effective company policies for compliance</li>
             <li>• Increased retention rates to over 90%</li>
+            <li>• Led diversity and inclusion initiatives</li>
+          </ul>
+        </div>
+        <div>
+          <div className="flex justify-between">
+            <p className="font-semibold text-[8px]">HR Specialist</p>
+            <p className="text-[7px] text-slate-500">05/2015 - 03/2019</p>
+          </div>
+          <p className="text-violet-600 text-[7px]">Corporate HR Solutions</p>
+          <ul className="text-slate-600 space-y-0.5 mt-0.5">
+            <li>• Managed recruitment and onboarding</li>
+            <li>• Employee relations and benefits</li>
           </ul>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <h4 className="font-bold text-[9px] text-violet-600 border-b border-violet-200 pb-1 mb-1.5">EDUCATION</h4>
@@ -260,7 +374,7 @@ const JessieTemplate = () => (
         <div>
           <h4 className="font-bold text-[9px] text-violet-600 border-b border-violet-200 pb-1 mb-1.5">SKILLS</h4>
           <div className="flex flex-wrap gap-1">
-            {['Analytics', 'Communication', 'Leadership'].map(skill => (
+            {['Analytics', 'Communication', 'Leadership', 'Hiring', 'Training', 'Compliance'].map(skill => (
               <span key={skill} className="bg-violet-50 text-violet-600 px-1 py-0.5 rounded text-[6px]">
                 {skill}
               </span>
@@ -277,15 +391,15 @@ const WesTemplate = () => (
     <div className="flex-1 p-3">
       <h3 className="font-bold text-[12px] text-slate-900">WES TURNER</h3>
       <p className="text-amber-600 text-[9px] font-medium mb-2">SALES MANAGER</p>
-      
+
       <div className="mb-3">
         <h4 className="font-bold text-[8px] text-slate-800 bg-slate-100 px-1 py-0.5 mb-1.5">SUMMARY</h4>
         <p className="text-slate-600 leading-relaxed">
-          Experienced Sales Manager with five years of industry experience overseeing sales figures 
+          Experienced Sales Manager with five years of industry experience overseeing sales figures
           and new account developments.
         </p>
       </div>
-      
+
       <div className="mb-3">
         <h4 className="font-bold text-[8px] text-slate-800 bg-slate-100 px-1 py-0.5 mb-1.5">EXPERIENCE</h4>
         <div className="mb-2">
@@ -294,10 +408,23 @@ const WesTemplate = () => (
           <ul className="text-slate-600 space-y-0.5 mt-0.5">
             <li>• Achieved 25% increase in sales revenue</li>
             <li>• Monitored competition and adjusted costs</li>
+            <li>• Managed team of 8 sales representatives</li>
+          </ul>
+        </div>
+        <div className="mb-2">
+          <p className="font-semibold text-[8px]">Sales Associate, Wilson Corp</p>
+          <p className="text-[7px] text-slate-500">Boulder • May 2012 - Oct 2014</p>
+          <ul className="text-slate-600 space-y-0.5 mt-0.5">
+            <li>• Exceeded sales targets by 15% quarterly</li>
           </ul>
         </div>
       </div>
-      
+
+      <div className="mb-2">
+        <h4 className="font-bold text-[8px] text-slate-800 bg-slate-100 px-1 py-0.5 mb-1.5">CERTIFICATIONS</h4>
+        <p className="text-[7px] text-slate-600">• Sales Management Certification<br />• Leadership Excellence</p>
+      </div>
+
       <div>
         <h4 className="font-bold text-[8px] text-slate-800 bg-slate-100 px-1 py-0.5 mb-1.5">EDUCATION</h4>
         <p className="font-semibold text-[8px]">Colorado College</p>
@@ -311,12 +438,14 @@ const WesTemplate = () => (
         <p>(720) 315-8237</p>
         <p>wes@gmail.com</p>
       </div>
-      
+
       <h4 className="font-bold text-[8px] text-amber-800 mb-1.5">SKILLS</h4>
       <ul className="space-y-0.5 text-[7px] text-slate-600">
         <li>Project Management</li>
         <li>Business Development</li>
         <li>Communication</li>
+        <li>CRM Software</li>
+        <li>Negotiation</li>
       </ul>
     </div>
   </div>
@@ -334,35 +463,48 @@ const SebastianTemplate = () => (
         <p>(917) 324-1818</p>
         <p>hw12@yahoo.com</p>
       </div>
-      
+
       <h4 className="text-[8px] font-bold mt-3 mb-1.5">SKILLS</h4>
       <ul className="space-y-0.5">
-        {['Communication', 'Motivated', 'MS Office', 'Social Media'].map(skill => (
+        {['Communication', 'Motivated', 'MS Office', 'Social Media', 'Time Management', 'Teamwork'].map(skill => (
           <li key={skill} className="flex items-center gap-1 text-[7px]">
             <div className="w-1 h-1 rounded-full bg-white"></div>
             {skill}
           </li>
         ))}
       </ul>
+
+      <h4 className="text-[8px] font-bold mt-3 mb-1.5">LANGUAGES</h4>
+      <p className="text-[7px]">English (Native)<br />Spanish (Intermediate)</p>
     </div>
     <div className="flex-1 p-3">
       <h3 className="font-bold text-[12px] text-slate-900">SEBASTIAN</h3>
       <h3 className="font-bold text-[12px] text-slate-900 mb-0.5">WILDER</h3>
       <p className="text-cyan-600 text-[8px] font-medium mb-2">Student</p>
-      
+
       <div className="mb-3">
         <h4 className="font-bold text-[9px] text-cyan-600 border-b border-cyan-200 pb-1 mb-1.5">SUMMARY</h4>
         <p className="text-slate-600 leading-relaxed">
           Hardworking student seeking employment with positive attitude and motivation to learn new skills.
         </p>
       </div>
-      
+
       <div className="mb-3">
         <h4 className="font-bold text-[9px] text-cyan-600 border-b border-cyan-200 pb-1 mb-1.5">EXPERIENCE</h4>
-        <p className="font-semibold text-[8px]">Sales Associate</p>
-        <p className="text-[7px] text-slate-500">Big Apple Bookstore • Sep 2015 - Jun 2018</p>
+        <div className="mb-2">
+          <p className="font-semibold text-[8px]">Sales Associate</p>
+          <p className="text-[7px] text-slate-500">Big Apple Bookstore • Sep 2015 - Jun 2018</p>
+          <ul className="text-slate-600 space-y-0.5 mt-0.5 text-[7px]">
+            <li>• Assisted customers and managed inventory</li>
+            <li>• Achieved top sales performer 3 months</li>
+          </ul>
+        </div>
+        <div>
+          <p className="font-semibold text-[8px]">Intern, Marketing Dept</p>
+          <p className="text-[7px] text-slate-500">Creative Agency • Summer 2015</p>
+        </div>
       </div>
-      
+
       <div>
         <h4 className="font-bold text-[9px] text-cyan-600 border-b border-cyan-200 pb-1 mb-1.5">EDUCATION</h4>
         <p className="font-semibold text-[8px]">Bachelor, Communications</p>
@@ -383,11 +525,11 @@ const NebulaTemplate = () => (
         <span>☎ (555) 123-4567</span>
       </div>
     </div>
-    
+
     <p className="text-slate-600 border-l-2 border-indigo-200 pl-2 mb-3 italic text-[7px]">
       Passionate developer with 5+ years of experience building scalable web applications.
     </p>
-    
+
     <div className="grid grid-cols-3 gap-3">
       <div className="col-span-2">
         <h4 className="font-bold text-[8px] text-indigo-600 mb-2 flex items-center gap-1">
@@ -397,20 +539,36 @@ const NebulaTemplate = () => (
           <p className="font-semibold text-[8px]">Senior Developer</p>
           <p className="text-indigo-500 text-[7px]">TechCorp Inc.</p>
           <p className="text-slate-400 text-[6px]">2020 — Present</p>
+          <ul className="text-slate-600 space-y-0.5 mt-0.5 text-[6px]">
+            <li>• Led development of microservices architecture</li>
+            <li>• Mentored junior developers</li>
+          </ul>
+        </div>
+        <div className="pl-2">
+          <p className="font-semibold text-[8px]">Full Stack Developer</p>
+          <p className="text-indigo-500 text-[7px]">StartupHub</p>
+          <p className="text-slate-400 text-[6px]">2018 — 2020</p>
+          <ul className="text-slate-600 space-y-0.5 mt-0.5 text-[6px]">
+            <li>• Built RESTful APIs for mobile applications</li>
+            <li>• Collaborated with design team on UI/UX</li>
+          </ul>
         </div>
       </div>
       <div>
         <h4 className="font-bold text-[8px] text-indigo-600 mb-2">SKILLS</h4>
         <div className="space-y-1">
-          {['React', 'Node.js', 'Python'].map(skill => (
+          {['React', 'Node.js', 'Python', 'Docker'].map(skill => (
             <div key={skill}>
               <p className="text-[7px]">{skill}</p>
               <div className="h-1 bg-slate-200 rounded-full">
-                <div className="h-full bg-indigo-500 rounded-full" style={{width: '85%'}}></div>
+                <div className="h-full bg-indigo-500 rounded-full" style={{ width: '85%' }}></div>
               </div>
             </div>
           ))}
         </div>
+        <h4 className="font-bold text-[8px] text-indigo-600 mt-2 mb-1">EDUCATION</h4>
+        <p className="text-[7px]">B.S. Computer Science</p>
+        <p className="text-slate-500 text-[6px]">MIT • 2014-2018</p>
       </div>
     </div>
   </div>
@@ -428,25 +586,44 @@ const StellarTemplate = () => (
         <span>New York, NY</span>
       </div>
     </div>
-    
+
     <p className="text-center text-slate-600 mb-4 max-w-[80%] mx-auto text-[7px]">
       Strategic marketing professional with expertise in digital campaigns and brand development.
     </p>
-    
-    <div className="grid grid-cols-2 gap-4">
+
+    <div className="grid grid-cols-2 gap-4 mb-3">
       <div>
         <h4 className="font-semibold text-[7px] uppercase tracking-widest text-slate-400 mb-2">Experience</h4>
-        <p className="font-medium text-[8px]">Marketing Manager</p>
-        <p className="text-slate-500 text-[7px]">Brand Co. · 2019 — Present</p>
+        <div className="mb-2">
+          <p className="font-medium text-[8px]">Marketing Manager</p>
+          <p className="text-slate-500 text-[7px]">Brand Co. · 2019 — Present</p>
+          <ul className="text-slate-600 text-[6px] mt-0.5 space-y-0.5">
+            <li>• Developed brand strategy</li>
+            <li>• Managed digital campaigns</li>
+          </ul>
+        </div>
+        <div>
+          <p className="font-medium text-[8px]">Marketing Specialist</p>
+          <p className="text-slate-500 text-[7px]">Creative Inc. · 2016 — 2019</p>
+          <ul className="text-slate-600 text-[6px] mt-0.5 space-y-0.5">
+            <li>• Executed social media strategy</li>
+            <li>• Analyzed campaign performance</li>
+          </ul>
+        </div>
       </div>
       <div>
         <h4 className="font-semibold text-[7px] uppercase tracking-widest text-slate-400 mb-2">Skills</h4>
         <div className="flex flex-wrap gap-1">
-          {['SEO', 'Analytics', 'Copywriting'].map(skill => (
+          {['SEO', 'Analytics', 'Copywriting', 'Social Media', 'Branding'].map(skill => (
             <span key={skill} className="border border-slate-200 px-2 py-0.5 rounded-full text-[6px]">{skill}</span>
           ))}
         </div>
       </div>
+    </div>
+    <div>
+      <h4 className="font-semibold text-[7px] uppercase tracking-widest text-slate-400 mb-2">Education</h4>
+      <p className="font-medium text-[8px]">B.A. Marketing</p>
+      <p className="text-slate-500 text-[7px]">NYU · 2012 — 2016</p>
     </div>
   </div>
 );
@@ -465,27 +642,38 @@ const OrbitTemplate = () => (
         </div>
       </div>
     </div>
-    
+
     <div className="p-3">
       <div className="bg-white p-2 rounded-lg shadow-sm mb-2">
         <p className="text-slate-600 text-[7px]">Creative designer passionate about user-centered design.</p>
       </div>
-      
+
       <div className="grid grid-cols-3 gap-2">
         <div className="col-span-2 bg-white p-2 rounded-lg shadow-sm">
           <h4 className="font-bold text-[8px] text-rose-600 mb-1">💼 Experience</h4>
-          <div className="border-l-2 border-rose-200 pl-2">
+          <div className="border-l-2 border-rose-200 pl-2 mb-2">
             <p className="font-semibold text-[8px]">Lead UX Designer</p>
-            <p className="text-rose-500 text-[7px]">Design Studio</p>
+            <p className="text-rose-500 text-[7px]">Design Studio · 2020 - Present</p>
+            <ul className="text-slate-600 text-[6px] mt-0.5 space-y-0.5">
+              <li>• Led redesign of flagship product</li>
+              <li>• Increased user satisfaction by 40%</li>
+            </ul>
+          </div>
+          <div className="border-l-2 border-rose-200 pl-2">
+            <p className="font-semibold text-[8px]">UX Designer</p>
+            <p className="text-rose-500 text-[7px]">TechStart · 2018 - 2020</p>
           </div>
         </div>
         <div className="bg-white p-2 rounded-lg shadow-sm">
           <h4 className="font-bold text-[8px] text-rose-600 mb-1">⚡ Skills</h4>
-          <div className="flex flex-wrap gap-0.5">
-            {['Figma', 'UI/UX'].map(skill => (
+          <div className="flex flex-wrap gap-0.5 mb-2">
+            {['Figma', 'UI/UX', 'Sketch', 'Prototyping'].map(skill => (
               <span key={skill} className="bg-rose-100 text-rose-600 px-1 py-0.5 rounded text-[6px]">{skill}</span>
             ))}
           </div>
+          <h4 className="font-bold text-[8px] text-rose-600 mb-1">🎓 Education</h4>
+          <p className="text-[7px]">B.A. Graphic Design</p>
+          <p className="text-slate-500 text-[6px]">RISD · 2014-2018</p>
         </div>
       </div>
     </div>
@@ -493,68 +681,82 @@ const OrbitTemplate = () => (
 );
 
 const templates = [
-  { 
-    id: 'cosmos', 
-    name: 'Cosmos', 
+  {
+    id: 'cosmos',
+    name: 'Cosmos',
     category: ['all', 'professional', 'ats', 'simple'],
     component: KellyTemplate,
     description: 'Clean two-column professional layout'
   },
-  { 
-    id: 'celestial', 
-    name: 'Celestial', 
+  {
+    id: 'celestial',
+    name: 'Celestial',
     category: ['all', 'one-column', 'ats', 'professional'],
     component: HowardTemplate,
     description: 'Classic centered single-column design'
   },
-  { 
-    id: 'galaxy', 
-    name: 'Galaxy', 
+  {
+    id: 'galaxy',
+    name: 'Galaxy',
     category: ['all', 'with-photo', 'modern', 'professional'],
     component: SamanthaTemplate,
     description: 'Modern with photo sidebar'
   },
-  { 
-    id: 'aurora', 
-    name: 'Aurora', 
+  {
+    id: 'aurora',
+    name: 'Aurora',
     category: ['all', 'modern', 'professional'],
     component: JessieTemplate,
     description: 'Modern gradient header design'
   },
-  { 
-    id: 'lunar', 
-    name: 'Lunar', 
+  {
+    id: 'lunar',
+    name: 'Lunar',
     category: ['all', 'professional', 'simple'],
     component: WesTemplate,
     description: 'Two-column with colored sidebar'
   },
-  { 
-    id: 'eclipse', 
-    name: 'Eclipse', 
+  {
+    id: 'eclipse',
+    name: 'Eclipse',
     category: ['all', 'with-photo', 'simple'],
     component: SebastianTemplate,
     description: 'Entry-level with photo placeholder'
   },
-  { 
-    id: 'nebula', 
-    name: 'Nebula', 
+  {
+    id: 'nebula',
+    name: 'Nebula',
     category: ['all', 'modern', 'professional'],
     component: NebulaTemplate,
     description: 'Modern clean with accent line'
   },
-  { 
-    id: 'stellar', 
-    name: 'Stellar', 
+  {
+    id: 'stellar',
+    name: 'Stellar',
     category: ['all', 'simple', 'ats'],
     component: StellarTemplate,
     description: 'Minimal elegant design'
   },
-  { 
-    id: 'orbit', 
-    name: 'Orbit', 
+  {
+    id: 'orbit',
+    name: 'Orbit',
     category: ['all', 'modern', 'with-photo'],
     component: OrbitTemplate,
     description: 'Creative with timeline design'
+  },
+  {
+    id: 'professional',
+    name: 'Professional',
+    category: ['all', 'professional', 'ats'],
+    component: ProfessionalPreview,
+    description: 'Clean, hierarchical layout for corporate roles'
+  },
+  {
+    id: 'academic',
+    name: 'Academic',
+    category: ['all', 'ats'],
+    component: AcademicPreview,
+    description: 'Text-focused layout for CVs and research'
   },
 ];
 
@@ -567,7 +769,7 @@ const Templates: React.FC = () => {
   const filteredTemplates = templates.filter(t => {
     const matchesCategory = selectedCategory === 'all' || t.category.includes(selectedCategory);
     const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         t.description.toLowerCase().includes(searchQuery.toLowerCase());
+      t.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -617,11 +819,10 @@ const Templates: React.FC = () => {
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                    selectedCategory === cat.id
-                      ? 'bg-primary text-white shadow-lg'
-                      : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700'
-                  }`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === cat.id
+                    ? 'bg-primary text-white shadow-lg'
+                    : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700'
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   {cat.name}
@@ -649,7 +850,7 @@ const Templates: React.FC = () => {
                     <div className="aspect-[8.5/11] bg-white overflow-hidden">
                       <TemplateComponent />
                     </div>
-                    
+
                     {/* Template Info */}
                     <div className="p-4 border-t dark:border-slate-700">
                       <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{template.name}</h3>
@@ -657,12 +858,11 @@ const Templates: React.FC = () => {
                     </div>
 
                     {/* Hover Overlay */}
-                    <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-center justify-center transition-opacity duration-300 ${
-                      hoveredTemplate === template.id ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                    }`}>
+                    <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-center justify-center transition-opacity duration-300 rounded-xl ${hoveredTemplate === template.id ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                      }`}>
                       <Button
                         onClick={() => handleUseTemplate(template.id)}
-                        className="bg-primary hover:bg-primary/90 text-white px-8 py-3 text-lg rounded-lg"
+                        className="bg-primary hover:bg-primary/90 text-white px-8 py-3 text-lg rounded-lg shadow-xl"
                       >
                         Use This Template
                       </Button>
