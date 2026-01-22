@@ -21,6 +21,8 @@ import {
   Mic,
   Sparkles,
   Loader2,
+  Camera,
+  X,
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -528,6 +530,53 @@ const Builder: React.FC = () => {
             <div className="bg-card border border-border rounded-xl overflow-hidden">
               <SectionHeader icon={<User className="w-4 h-4" />} title="Personal Information" />
               <div className="p-4 space-y-4">
+                  {/* Profile Photo Upload - Only for photo templates */}
+                  {(selectedTemplate === 'galaxy' || selectedTemplate === 'eclipse') && (
+                    <div className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg">
+                      <div className="relative">
+                        {resumeData.personalInfo.profilePhoto ? (
+                          <div className="relative">
+                            <img 
+                              src={resumeData.personalInfo.profilePhoto} 
+                              alt="Profile" 
+                              className="w-20 h-20 rounded-full object-cover border-2 border-primary"
+                            />
+                            <button
+                              onClick={() => updatePersonalInfo({ profilePhoto: '' })}
+                              className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="w-20 h-20 rounded-full bg-muted border-2 border-dashed border-muted-foreground/50 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors">
+                            <Camera className="w-6 h-6 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground mt-1">Add Photo</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (event) => {
+                                    updatePersonalInfo({ profilePhoto: event.target?.result as string });
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Profile Photo</p>
+                        <p className="text-xs text-muted-foreground">Upload a professional photo for your resume</p>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label>Full Name</Label>
@@ -1417,10 +1466,14 @@ const GalaxyTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochro
   <div className="h-full flex text-[11px]">
     {/* Colored Sidebar */}
     <div className="w-[32%] text-white p-5" style={{ background: `linear-gradient(to bottom, ${primary}, ${primary}dd)` }}>
-      <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center border-3 border-white" style={{ backgroundColor: `${primary}66` }}>
-        <span className="text-white font-bold text-lg">
-          {data.personalInfo.fullName?.split(' ').map((n: string) => n[0]).join('') || 'NA'}
-        </span>
+      <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center border-3 border-white overflow-hidden" style={{ backgroundColor: data.personalInfo.profilePhoto ? 'transparent' : `${primary}66` }}>
+        {data.personalInfo.profilePhoto ? (
+          <img src={data.personalInfo.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-white font-bold text-lg">
+            {data.personalInfo.fullName?.split(' ').map((n: string) => n[0]).join('') || 'NA'}
+          </span>
+        )}
       </div>
       <h3 className="text-center font-bold text-lg mb-0.5">{data.personalInfo.fullName || 'Your Name'}</h3>
       <p className="text-center opacity-80 text-sm mb-4">{data.experience[0]?.position || 'Professional'}</p>
@@ -1706,10 +1759,14 @@ const EclipseTemplate: React.FC<TemplateProps> = ({ data, accentColor, isMonochr
   <div className="h-full flex text-[11px]">
     {/* Colored Sidebar */}
     <div className="w-[30%] text-white p-5" style={{ background: `linear-gradient(to bottom, ${primary}, ${primary}dd)` }}>
-      <div className="w-16 h-16 rounded-full bg-white/20 mx-auto mb-4 flex items-center justify-center border-2 border-white">
-        <span className="text-sm font-bold">
-          {data.personalInfo.fullName?.split(' ').map((n: string) => n[0]).join('') || 'NA'}
-        </span>
+      <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-white overflow-hidden" style={{ backgroundColor: data.personalInfo.profilePhoto ? 'transparent' : 'rgba(255,255,255,0.2)' }}>
+        {data.personalInfo.profilePhoto ? (
+          <img src={data.personalInfo.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-sm font-bold">
+            {data.personalInfo.fullName?.split(' ').map((n: string) => n[0]).join('') || 'NA'}
+          </span>
+        )}
       </div>
       
       <h4 className="font-bold text-sm mt-4 mb-3">DETAILS</h4>

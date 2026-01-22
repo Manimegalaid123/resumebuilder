@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutGrid, Star, Code, Image, Briefcase, Award, 
   Mail, Phone, MapPin, CheckCircle, Search, Columns,
-  Upload, FilePlus, X, FileText, Loader2, RefreshCw
+  Upload, FilePlus, X, FileText, Loader2
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -18,8 +18,8 @@ import {
 } from '@/components/ui/dialog';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Set up PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Set up PDF.js worker - using a stable version from unpkg
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
 
 const categories = [
   { id: 'all', name: 'All Templates', icon: LayoutGrid },
@@ -1136,13 +1136,6 @@ const Templates: React.FC = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Check if user has existing resume data
-  const hasExistingData = resumeData.personalInfo.fullName || 
-                          resumeData.personalInfo.email ||
-                          resumeData.skills.length > 0 ||
-                          resumeData.experience.length > 0 ||
-                          resumeData.education.length > 0;
-
   const filteredTemplates = templates.filter(t => {
     const matchesCategory = selectedCategory === 'all' || t.category.includes(selectedCategory);
     const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1161,12 +1154,6 @@ const Templates: React.FC = () => {
     // Clear existing data flag and go to builder
     localStorage.setItem('clearResumeData', 'true');
     navigate(`/builder?template=${selectedTemplateId}&new=true`);
-  };
-
-  const handleUseExistingData = () => {
-    setShowModal(false);
-    // Keep existing data, just change template
-    navigate(`/builder?template=${selectedTemplateId}`);
   };
 
   const handleUploadClick = () => {
@@ -1499,9 +1486,24 @@ const Templates: React.FC = () => {
         throw new Error('Could not extract text from file. Please try a TXT file for best results.');
       }
       
-      // Parse the resume
-      const parsed = parseResumeText(text);
-      console.log('Parsed data:', parsed); // Debug log
+      // Use AI to parse the resume
+      console.log('Sending to AI for parsing...');
+      const response = await fetch('http://localhost:5000/api/ai/parse-resume', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+      });
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.message || 'AI parsing failed');
+      }
+      
+      const parsed = result.data;
+      console.log('AI Parsed data:', parsed); // Debug log
       
       // Store parsed data in localStorage for Builder to load
       const uploadedData = {
@@ -1681,23 +1683,6 @@ const Templates: React.FC = () => {
           </DialogHeader>
           
           <div className="grid gap-3 py-4">
-            {/* Use Existing Data Option - Only show if user has data */}
-            {hasExistingData && (
-              <button
-                onClick={handleUseExistingData}
-                className="flex items-center gap-4 p-4 rounded-xl border-2 border-primary bg-primary/5 hover:bg-primary/10 transition-all group"
-              >
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                  <RefreshCw className="w-7 h-7" />
-                </div>
-                <div className="text-left flex-1">
-                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Use My Current Data</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Apply this template to your existing resume</p>
-                </div>
-                <CheckCircle className="w-5 h-5 text-primary" />
-              </button>
-            )}
-
             {/* Create New Option */}
             <button
               onClick={handleCreateNew}

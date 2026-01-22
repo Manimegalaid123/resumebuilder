@@ -7,6 +7,7 @@ export interface PersonalInfo {
   linkedin: string;
   location: string;
   summary: string;
+  profilePhoto: string;
 }
 
 export interface Education {
@@ -145,6 +146,7 @@ const defaultResumeData: ResumeData = {
     linkedin: '',
     location: '',
     summary: '',
+    profilePhoto: '',
   },
   education: [],
   experience: [],
