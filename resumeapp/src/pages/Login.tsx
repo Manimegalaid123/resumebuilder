@@ -80,12 +80,12 @@ export default function Login() {
               >
                 <FileText className="w-5 h-5 text-primary-foreground" />
               </motion.div>
-              <span className="font-bold text-2xl gradient-text">ResumeAI</span>
+              <span className="font-bold text-2xl gradient-text">Resumify</span>
             </Link>
 
             <div className="space-y-4">
               <h2 className="text-4xl font-bold leading-tight">
-                Welcome Back to <span className="gradient-text">ResumeAI</span>
+                Welcome Back to <span className="gradient-text">Resumify</span>
               </h2>
               <p className="text-lg text-muted-foreground">
                 Sign in to continue building and editing your professional resume with our intelligent builder.

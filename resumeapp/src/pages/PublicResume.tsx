@@ -261,7 +261,7 @@ const PublicResumePage = () => {
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
             <FileText className="w-4 h-4" />
-            <span>ResumeAI</span>
+            <span>Resumify</span>
           </Link>
           <Button variant="outline" size="sm" className="gap-2">
             <Download className="w-4 h-4" />
@@ -500,7 +500,7 @@ const PublicResumePage = () => {
 
         {/* Footer */}
         <div className="text-center mt-6 text-sm text-muted-foreground">
-          <p>Created with <Link to="/" className="text-primary hover:underline">ResumeAI</Link></p>
+          <p>Created with <Link to="/" className="text-primary hover:underline">Resumify</Link></p>
         </div>
       </motion.div>
     </div>

@@ -103,7 +103,7 @@ export default function Signup() {
               >
                 <FileText className="w-5 h-5 text-primary-foreground" />
               </motion.div>
-              <span className="font-bold text-2xl gradient-text">ResumeAI</span>
+              <span className="font-bold text-2xl gradient-text">Resumify</span>
             </Link>
 
             <div className="space-y-4">

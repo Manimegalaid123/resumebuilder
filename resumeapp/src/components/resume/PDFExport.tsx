@@ -120,8 +120,8 @@ const PDFExport: React.FC<PDFExportProps> = ({
       pdf.setProperties({
         title: resumeName,
         subject: 'Resume',
-        author: 'ResumeAI',
-        creator: 'ResumeAI - Professional Resume Builder',
+        author: 'Resumify',
+        creator: 'Resumify - Professional Resume Builder',
       });
 
       // Save the PDF

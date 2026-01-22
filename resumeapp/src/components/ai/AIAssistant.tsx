@@ -106,7 +106,7 @@ const AIAssistant: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-primary-foreground">AI Assistant</h3>
-                    <p className="text-xs text-primary-foreground/70">Powered by ResumeAI</p>
+                    <p className="text-xs text-primary-foreground/70">Powered by Resumify</p>
                   </div>
                 </div>
                 <Button

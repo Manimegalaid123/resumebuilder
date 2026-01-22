@@ -13,7 +13,7 @@ const Footer: React.FC = () => {
               <div className="p-2 rounded-lg gradient-bg">
                 <FileText className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="font-bold text-xl gradient-text">ResumeAI</span>
+              <span className="font-bold text-xl gradient-text">Resumify</span>
             </Link>
             <p className="text-muted-foreground text-sm">
               Build ATS-optimized resumes and land your dream job with AI-powered assistance.
@@ -66,7 +66,7 @@ const Footer: React.FC = () => {
         </div>
 
         <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} ResumeAI. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Resumify. All rights reserved.</p>
         </div>
       </div>
     </footer>

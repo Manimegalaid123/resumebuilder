@@ -59,7 +59,7 @@ const About: React.FC = () => {
               <span className="gradient-text">Land Their Dream Jobs</span>
             </h1>
             <p className="text-lg text-muted-foreground mb-8">
-              ResumeAI was built with one mission: to empower job seekers with the tools 
+              Resumify was built with one mission: to empower job seekers with the tools 
               they need to create professional, ATS-optimized resumes that get noticed.
             </p>
           </motion.div>
@@ -96,7 +96,7 @@ const About: React.FC = () => {
               <h2 className="text-3xl font-bold mb-6">Our Story</h2>
               <div className="space-y-4 text-muted-foreground">
                 <p>
-                  ResumeAI started in 2023 when our founders experienced firsthand the 
+                  Resumify started in 2023 when our founders experienced firsthand the 
                   frustration of applying to hundreds of jobs without getting responses. 
                   After discovering that many resumes were being filtered out by ATS systems 
                   before reaching human recruiters, they set out to solve this problem.
@@ -128,7 +128,7 @@ const About: React.FC = () => {
                       R
                     </div>
                     <div>
-                      <h3 className="font-semibold">ResumeAI</h3>
+                      <h3 className="font-semibold">Resumify</h3>
                       <p className="text-sm text-muted-foreground">Making job search easier</p>
                     </div>
                   </div>
@@ -164,7 +164,7 @@ const About: React.FC = () => {
           >
             <h2 className="text-3xl font-bold mb-4">Our Values</h2>
             <p className="text-muted-foreground">
-              These core principles guide everything we do at ResumeAI.
+              These core principles guide everything we do at Resumify.
             </p>
           </motion.div>
 
@@ -201,7 +201,7 @@ const About: React.FC = () => {
           >
             <h2 className="text-3xl font-bold mb-4">Ready to Build Your Resume?</h2>
             <p className="text-primary-foreground/80 mb-8 max-w-lg mx-auto">
-              Join thousands of job seekers who have already created their perfect resume with ResumeAI.
+              Join thousands of job seekers who have already created their perfect resume with Resumify.
             </p>
             <Link to="/builder">
               <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90">

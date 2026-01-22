@@ -1488,7 +1488,8 @@ const Templates: React.FC = () => {
       
       // Use AI to parse the resume
       console.log('Sending to AI for parsing...');
-      const response = await fetch('http://localhost:5000/api/ai/parse-resume', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${apiUrl}/ai/parse-resume`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
